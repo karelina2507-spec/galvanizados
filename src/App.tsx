@@ -4,7 +4,6 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Productos from './pages/Productos'
 import Stock from './pages/Stock'
-import Pedidos from './pages/Pedidos'
 import Ventas from './pages/Ventas'
 import NuevaVenta from './pages/NuevaVenta'
 import Rutas from './pages/Rutas'
@@ -53,14 +52,6 @@ function App() {
             element={
               <PrivateRoute>
                 <Stock />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/pedidos"
-            element={
-              <PrivateRoute>
-                <Pedidos />
               </PrivateRoute>
             }
           />
