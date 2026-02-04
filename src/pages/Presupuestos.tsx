@@ -33,71 +33,13 @@ export default function Presupuestos() {
 
   const [datosVenta, setDatosVenta] = useState({
     metodo_pago: 'efectivo',
-    envio_check: false,
-    reparto: false,
-    departamento: 'Montevideo',
     localidad: '',
-    direccion: '',
+    direccion_entrega: '',
     latitud: null as number | null,
     longitud: null as number | null,
-    costo_envio: '',
+    costo_delivery: '',
     notas_venta: '',
   })
-
-  const departamentosTodos = [
-    'Artigas',
-    'Canelones',
-    'Cerro Largo',
-    'Colonia',
-    'Durazno',
-    'Flores',
-    'Florida',
-    'Lavalleja',
-    'Maldonado',
-    'Montevideo',
-    'Paysandú',
-    'Río Negro',
-    'Rivera',
-    'Rocha',
-    'Salto',
-    'San José',
-    'Soriano',
-    'Tacuarembó',
-    'Treinta y Tres',
-  ]
-
-  const departamentosReparto = [
-    'Canelones',
-    'Colonia',
-    'Maldonado',
-    'Montevideo',
-    'San José',
-  ]
-
-  const localidadesPorDepartamento: Record<string, string[]> = {
-    Artigas: ['Artigas', 'Bella Unión', 'Tomás Gomensoro', 'Baltasar Brum'],
-    Canelones: ['Canelones', 'Ciudad de la Costa', 'Las Piedras', 'Pando', 'La Paz', 'Progreso', 'Santa Lucía', 'Atlántida', 'Parque del Plata'],
-    'Cerro Largo': ['Melo', 'Río Branco', 'Fraile Muerto', 'Aceguá'],
-    Colonia: ['Colonia del Sacramento', 'Carmelo', 'Nueva Helvecia', 'Juan Lacaze', 'Rosario', 'Tarariras'],
-    Durazno: ['Durazno', 'Sarandí del Yí', 'Villa del Carmen'],
-    Flores: ['Trinidad', 'Ismael Cortinas'],
-    Florida: ['Florida', 'Sarandí Grande', 'Fray Marcos', '25 de Agosto'],
-    Lavalleja: ['Minas', 'José Pedro Varela', 'Solís de Mataojo'],
-    Maldonado: ['Maldonado', 'Punta del Este', 'San Carlos', 'Pan de Azúcar', 'Piriápolis'],
-    Montevideo: ['Montevideo', 'Ciudad Vieja', 'Centro', 'Cordón', 'Parque Rodó', 'Pocitos', 'Buceo', 'Carrasco', 'Malvín', 'Punta Carretas'],
-    Paysandú: ['Paysandú', 'Guichón', 'Quebracho', 'Piedras Coloradas'],
-    'Río Negro': ['Fray Bentos', 'Young', 'San Javier', 'Nuevo Berlín'],
-    Rivera: ['Rivera', 'Tranqueras', 'Vichadero', 'Minas de Corrales'],
-    Rocha: ['Rocha', 'Chuy', 'Castillos', 'Lascano', 'La Paloma', 'La Pedrera'],
-    Salto: ['Salto', 'Constitución', 'Belén'],
-    'San José': ['San José de Mayo', 'Ciudad del Plata', 'Libertad', 'Ecilda Paullier', 'Rafael Perazza'],
-    Soriano: ['Mercedes', 'Dolores', 'Cardona', 'Palmitas'],
-    Tacuarembó: ['Tacuarembó', 'Paso de los Toros', 'San Gregorio de Polanco'],
-    'Treinta y Tres': ['Treinta y Tres', 'Vergara', 'Santa Clara de Olimar'],
-  }
-
-  const departamentosDisponibles = datosVenta.reparto ? departamentosReparto : departamentosTodos
-  const localidadesDisponibles = localidadesPorDepartamento[datosVenta.departamento] || []
 
   useEffect(() => {
     loadPresupuestos()
@@ -189,11 +131,6 @@ export default function Presupuestos() {
   const convertirAVenta = async () => {
     if (!presupuestoSeleccionado) return
 
-    if (datosVenta.reparto && (!datosVenta.latitud || !datosVenta.longitud)) {
-      setError('Para ventas con reparto debe seleccionar una ubicación en el mapa')
-      return
-    }
-
     setConverting(true)
     setError('')
 
@@ -238,8 +175,8 @@ export default function Presupuestos() {
 
       const numeroVenta = `V-${hoy}-${contador.toString().padStart(3, '0')}`
 
-      const costoEnvio = parseFloat(datosVenta.costo_envio) || 0
-      const totalConEnvio = presupuestoSeleccionado.total + costoEnvio
+      const costoDelivery = parseFloat(datosVenta.costo_delivery) || 0
+      const totalConDelivery = presupuestoSeleccionado.total + costoDelivery
 
       const ventaData = {
         numero_venta: numeroVenta,
@@ -248,16 +185,13 @@ export default function Presupuestos() {
         fecha_venta: new Date().toISOString().split('T')[0],
         subtotal: presupuestoSeleccionado.subtotal,
         descuento: presupuestoSeleccionado.descuento,
-        total: totalConEnvio,
+        total: totalConDelivery,
         metodo_pago: datosVenta.metodo_pago,
-        departamento: datosVenta.departamento || null,
         localidad: datosVenta.localidad || null,
-        direccion: datosVenta.direccion || null,
+        direccion_entrega: datosVenta.direccion_entrega || null,
         latitud: datosVenta.latitud,
         longitud: datosVenta.longitud,
-        envio: costoEnvio,
-        reparto: datosVenta.reparto,
-        estado: datosVenta.reparto ? 'pendiente' : 'completado',
+        costo_delivery: costoDelivery,
         notas: datosVenta.notas_venta || presupuestoSeleccionado.notas || null,
       }
 
@@ -328,14 +262,11 @@ export default function Presupuestos() {
       setPresupuestoSeleccionado(null)
       setDatosVenta({
         metodo_pago: 'efectivo',
-        envio_check: false,
-        reparto: false,
-        departamento: 'Montevideo',
         localidad: '',
-        direccion: '',
+        direccion_entrega: '',
         latitud: null,
         longitud: null,
-        costo_envio: '',
+        costo_delivery: '',
         notas_venta: '',
       })
       loadPresupuestos()
@@ -777,171 +708,84 @@ export default function Presupuestos() {
               </div>
 
               <div
-                className="form-group"
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '2rem',
-                  paddingTop: '1rem',
-                  paddingBottom: '0.5rem',
+                  background: '#f8fafc',
+                  padding: '1.5rem',
+                  borderRadius: '8px',
+                  border: '1px solid #e5e7eb',
                 }}
               >
-                <label
+                <h3
                   style={{
+                    margin: '0 0 1rem 0',
+                    fontSize: '1.1rem',
+                    fontWeight: '600',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.5rem',
-                    margin: 0,
-                    cursor: 'pointer',
                   }}
                 >
-                  <input
-                    type="checkbox"
-                    checked={datosVenta.envio_check}
-                    onChange={(e) =>
-                      setDatosVenta({
-                        ...datosVenta,
-                        envio_check: e.target.checked,
-                        reparto: false,
-                      })
-                    }
-                    style={{ cursor: 'pointer' }}
-                  />
-                  <span>Envío</span>
-                </label>
+                  <Truck size={20} />
+                  Datos de Entrega
+                </h3>
 
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    margin: 0,
-                    cursor: 'pointer',
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={datosVenta.reparto}
-                    onChange={(e) =>
-                      setDatosVenta({
-                        ...datosVenta,
-                        reparto: e.target.checked,
-                        envio_check: false,
-                      })
-                    }
-                    style={{ cursor: 'pointer' }}
-                  />
-                  <span>Reparto</span>
-                </label>
-              </div>
-
-              {(datosVenta.envio_check || datosVenta.reparto) && (
                 <div
                   style={{
-                    background: '#f8fafc',
-                    padding: '1.5rem',
-                    borderRadius: '8px',
-                    border: '1px solid #e5e7eb',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                    gap: '1rem',
                   }}
                 >
-                  <h3
-                    style={{
-                      margin: '0 0 1rem 0',
-                      fontSize: '1.1rem',
-                      fontWeight: '600',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                    }}
-                  >
-                    <Truck size={20} />
-                    Datos de {datosVenta.reparto ? 'Reparto' : 'Envío'}
-                  </h3>
-
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                      gap: '1rem',
-                    }}
-                  >
-                    <div className="form-group">
-                      <label>Departamento</label>
-                      <select
-                        value={datosVenta.departamento}
-                        onChange={(e) =>
-                          setDatosVenta({ ...datosVenta, departamento: e.target.value })
-                        }
-                      >
-                        {departamentosDisponibles.map((dep) => (
-                          <option key={dep} value={dep}>
-                            {dep}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="form-group">
-                      <label>Localidad</label>
-                      <select
-                        value={datosVenta.localidad}
-                        onChange={(e) =>
-                          setDatosVenta({ ...datosVenta, localidad: e.target.value })
-                        }
-                      >
-                        <option value="">Seleccione una localidad</option>
-                        {localidadesDisponibles.map((loc) => (
-                          <option key={loc} value={loc}>
-                            {loc}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="form-group">
-                      <label>Dirección</label>
-                      <input
-                        type="text"
-                        value={datosVenta.direccion}
-                        onChange={(e) =>
-                          setDatosVenta({ ...datosVenta, direccion: e.target.value })
-                        }
-                        placeholder="Ej: Av. 18 de Julio 1234"
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label>Costo de {datosVenta.reparto ? 'Reparto' : 'Envío'} (UYU)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={datosVenta.costo_envio}
-                        onChange={(e) =>
-                          setDatosVenta({ ...datosVenta, costo_envio: e.target.value })
-                        }
-                        placeholder="0.00"
-                      />
-                    </div>
+                  <div className="form-group">
+                    <label>Localidad</label>
+                    <input
+                      type="text"
+                      value={datosVenta.localidad}
+                      onChange={(e) =>
+                        setDatosVenta({ ...datosVenta, localidad: e.target.value })
+                      }
+                      placeholder="Ej: Montevideo"
+                    />
                   </div>
 
-                  {datosVenta.reparto && (
-                    <div style={{ marginTop: '1rem' }}>
-                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
-                        Ubicación en el mapa {datosVenta.reparto && '*'}
-                      </label>
-                      <MapaPicker
-                        onLocationSelect={(lat, lng) => {
-                          setDatosVenta({
-                            ...datosVenta,
-                            latitud: lat,
-                            longitud: lng,
-                          })
-                        }}
-                      />
-                    </div>
-                  )}
+                  <div className="form-group">
+                    <label>Dirección de Entrega</label>
+                    <input
+                      type="text"
+                      value={datosVenta.direccion_entrega}
+                      onChange={(e) =>
+                        setDatosVenta({ ...datosVenta, direccion_entrega: e.target.value })
+                      }
+                      placeholder="Ej: Av. 18 de Julio 1234"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Costo de Delivery (UYU)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={datosVenta.costo_delivery}
+                      onChange={(e) =>
+                        setDatosVenta({ ...datosVenta, costo_delivery: e.target.value })
+                      }
+                      placeholder="0.00"
+                    />
+                  </div>
                 </div>
-              )}
+
+                <div style={{ marginTop: '1rem' }}>
+                  <MapaPicker
+                    onLocationSelect={(lat, lng) => {
+                      setDatosVenta({
+                        ...datosVenta,
+                        latitud: lat,
+                        longitud: lng,
+                      })
+                    }}
+                  />
+                </div>
+              </div>
 
               <div className="form-group">
                 <label>Notas Adicionales</label>
@@ -995,7 +839,7 @@ export default function Presupuestos() {
                   <span style={{ fontWeight: '600' }}>Total Presupuesto:</span>
                   <span>${presupuestoSeleccionado.total.toFixed(2)}</span>
                 </div>
-                {parseFloat(datosVenta.costo_envio) > 0 && (
+                {parseFloat(datosVenta.costo_delivery) > 0 && (
                   <>
                     <div
                       style={{
@@ -1004,10 +848,8 @@ export default function Presupuestos() {
                         marginBottom: '0.5rem',
                       }}
                     >
-                      <span style={{ fontWeight: '600' }}>
-                        Costo {datosVenta.reparto ? 'Reparto' : 'Envío'}:
-                      </span>
-                      <span>+${parseFloat(datosVenta.costo_envio).toFixed(2)}</span>
+                      <span style={{ fontWeight: '600' }}>Costo Delivery:</span>
+                      <span>+${parseFloat(datosVenta.costo_delivery).toFixed(2)}</span>
                     </div>
                     <div
                       style={{
@@ -1025,7 +867,7 @@ export default function Presupuestos() {
                       >
                         <span style={{ fontWeight: '700' }}>TOTAL VENTA:</span>
                         <span style={{ fontWeight: '700', color: '#3b82f6' }}>
-                          ${(presupuestoSeleccionado.total + parseFloat(datosVenta.costo_envio)).toFixed(2)}
+                          ${(presupuestoSeleccionado.total + parseFloat(datosVenta.costo_delivery)).toFixed(2)}
                         </span>
                       </div>
                     </div>
