@@ -405,7 +405,9 @@ export default function Productos() {
                 <th style={{ padding: '16px', textAlign: 'center', fontWeight: '600' }}>Largo (m)</th>
                 <th style={{ padding: '16px', textAlign: 'center', fontWeight: '600' }}>Separación (cm)</th>
                 <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600' }}>P. Compra</th>
+                <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600' }}>P. Costo m²</th>
                 <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600' }}>P. Venta</th>
+                <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600' }}>P. Venta m²</th>
                 <th style={{ padding: '16px', textAlign: 'center', fontWeight: '600' }}>Acciones</th>
               </tr>
             </thead>
@@ -428,7 +430,13 @@ export default function Productos() {
                     {producto.separacion_cm ? producto.separacion_cm : '-'}
                   </td>
                   <td style={{ padding: '16px', textAlign: 'right' }}>${Number(producto.precio_compra).toLocaleString()}</td>
+                  <td style={{ padding: '16px', textAlign: 'right' }}>
+                    {producto.m2_rollo ? `$${(producto.precio_compra / producto.m2_rollo).toFixed(2)}` : '-'}
+                  </td>
                   <td style={{ padding: '16px', textAlign: 'right' }}>${Number(producto.precio_venta).toLocaleString()}</td>
+                  <td style={{ padding: '16px', textAlign: 'right' }}>
+                    {producto.m2_rollo ? `$${(producto.precio_venta / producto.m2_rollo).toFixed(2)}` : '-'}
+                  </td>
                   <td style={{ padding: '16px', textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                       <button
