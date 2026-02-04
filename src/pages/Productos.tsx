@@ -15,6 +15,8 @@ interface Producto {
   precio_venta: number
   precio_compra_uyu?: number
   precio_venta_usd?: number
+  precio_costo_m2?: number
+  precio_venta_m2?: number
   altura_m?: number
   largo_m?: number
   separacion_cm?: number
@@ -427,13 +429,13 @@ export default function Productos() {
                   <td style={{ padding: '16px', textAlign: 'center' }}>
                     {producto.separacion_cm ? producto.separacion_cm : '-'}
                   </td>
-                  <td style={{ padding: '16px', textAlign: 'right' }}>${Number(producto.precio_compra).toLocaleString()}</td>
+                  <td style={{ padding: '16px', textAlign: 'right' }}>${Number(producto.precio_compra_uyu || 0).toLocaleString()}</td>
                   <td style={{ padding: '16px', textAlign: 'right' }}>
-                    {producto.m2_rollo ? `$${(producto.precio_compra / producto.m2_rollo).toFixed(2)}` : '-'}
+                    {producto.precio_costo_m2 ? `$${Number(producto.precio_costo_m2).toFixed(2)}` : '-'}
                   </td>
-                  <td style={{ padding: '16px', textAlign: 'right' }}>${Number(producto.precio_venta).toLocaleString()}</td>
+                  <td style={{ padding: '16px', textAlign: 'right' }}>${Number(producto.precio_venta || 0).toLocaleString()}</td>
                   <td style={{ padding: '16px', textAlign: 'right' }}>
-                    {producto.m2_rollo ? `$${(producto.precio_venta / producto.m2_rollo).toFixed(2)}` : '-'}
+                    {producto.precio_venta_m2 ? `$${Number(producto.precio_venta_m2).toFixed(2)}` : '-'}
                   </td>
                   <td style={{ padding: '16px', textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
