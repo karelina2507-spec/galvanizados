@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Package, ShoppingCart, BarChart3, Users, Truck, DollarSign, Menu, X, Navigation, Tag, FileText } from 'lucide-react'
+import { Package, ShoppingCart, BarChart3, Users, Truck, DollarSign, Menu, X, Navigation, Tag, FileText, ClipboardList } from 'lucide-react'
 import '../styles/layout.css'
 
 interface LayoutProps {
@@ -51,6 +51,14 @@ export default function Layout({ children }: LayoutProps) {
           >
             <Package size={20} />
             <span>Stock</span>
+          </Link>
+
+          <Link
+            to="/pedidos"
+            className={`nav-item ${isActive('/pedidos') ? 'active' : ''}`}
+          >
+            <ClipboardList size={20} />
+            <span>Pedidos</span>
           </Link>
 
           <Link
