@@ -400,7 +400,6 @@ export default function Productos() {
               <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
                 <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600' }}>Código</th>
                 <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600' }}>Producto</th>
-                <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600' }}>Categoría</th>
                 <th style={{ padding: '16px', textAlign: 'center', fontWeight: '600' }}>Altura (m)</th>
                 <th style={{ padding: '16px', textAlign: 'center', fontWeight: '600' }}>Largo (m)</th>
                 <th style={{ padding: '16px', textAlign: 'center', fontWeight: '600' }}>Separación (cm)</th>
@@ -419,7 +418,6 @@ export default function Productos() {
                     <div style={{ fontWeight: '600' }}>{producto.nombre}</div>
                     <div style={{ fontSize: '14px', color: '#6b7280' }}>{producto.subtipo}</div>
                   </td>
-                  <td style={{ padding: '16px' }}>{producto.categoria?.nombre || '-'}</td>
                   <td style={{ padding: '16px', textAlign: 'center' }}>
                     {producto.altura_m ? producto.altura_m : '-'}
                   </td>
