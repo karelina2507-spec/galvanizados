@@ -430,20 +430,18 @@ export default function Productos() {
                     {producto.separacion_cm ? producto.separacion_cm : '-'}
                   </td>
                   <td style={{ padding: '16px', textAlign: 'right' }}>
-                    ${Number(producto.precio_compra || 0).toFixed(2)}
+                    {producto.altura_m && producto.largo_m && producto.precio_costo_m2
+                      ? `$${(producto.altura_m * producto.largo_m * producto.precio_costo_m2).toFixed(2)}`
+                      : '-'}
                   </td>
                   <td style={{ padding: '16px', textAlign: 'right' }}>
-                    {producto.m2_rollo && producto.precio_compra
-                      ? `$${(producto.precio_compra / producto.m2_rollo).toFixed(2)}`
-                      : '-'}
+                    {producto.precio_costo_m2 ? `$${Number(producto.precio_costo_m2).toFixed(2)}` : '-'}
                   </td>
                   <td style={{ padding: '16px', textAlign: 'right' }}>
                     ${Number(producto.precio_venta || 0).toLocaleString()}
                   </td>
                   <td style={{ padding: '16px', textAlign: 'right' }}>
-                    {producto.m2_rollo && producto.precio_venta
-                      ? `$${(producto.precio_venta / producto.m2_rollo).toFixed(2)}`
-                      : '-'}
+                    {producto.precio_venta_m2 ? `$${Number(producto.precio_venta_m2).toFixed(2)}` : '-'}
                   </td>
                   <td style={{ padding: '16px', textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
