@@ -44,6 +44,17 @@ export default function Productos() {
   const [inlineFormData, setInlineFormData] = useState<any>({})
   const [sortColumn, setSortColumn] = useState<string | null>(null)
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [columnFilters, setColumnFilters] = useState({
+    codigo: '',
+    nombre: '',
+    altura: '',
+    largo: '',
+    separacion: '',
+    precio_costo: '',
+    precio_costo_m2: '',
+    precio_venta: '',
+    precio_venta_m2: ''
+  })
 
   const [formData, setFormData] = useState({
     codigo_producto: '',
@@ -354,12 +365,25 @@ export default function Productos() {
 
   const productosFiltrados = productos.filter((producto) => {
     const searchLower = searchTerm.toLowerCase()
-    return (
+    const matchesGlobalSearch = (
       producto.codigo_producto.toLowerCase().includes(searchLower) ||
       producto.nombre.toLowerCase().includes(searchLower) ||
       producto.subtipo?.toLowerCase().includes(searchLower) ||
       producto.categoria?.nombre?.toLowerCase().includes(searchLower)
     )
+
+    const matchesColumnFilters = (
+      producto.codigo_producto.toLowerCase().includes(columnFilters.codigo.toLowerCase()) &&
+      producto.nombre.toLowerCase().includes(columnFilters.nombre.toLowerCase()) &&
+      (columnFilters.altura === '' || (producto.altura_m?.toString() || '').includes(columnFilters.altura)) &&
+      (columnFilters.largo === '' || (producto.largo_m?.toString() || '').includes(columnFilters.largo)) &&
+      (columnFilters.separacion === '' || (producto.separacion_cm?.toString() || '').includes(columnFilters.separacion)) &&
+      (columnFilters.precio_costo_m2 === '' || (producto.precio_costo_m2?.toString() || '').includes(columnFilters.precio_costo_m2)) &&
+      (columnFilters.precio_venta === '' || (producto.precio_venta?.toString() || '').includes(columnFilters.precio_venta)) &&
+      (columnFilters.precio_venta_m2 === '' || (producto.precio_venta_m2?.toString() || '').includes(columnFilters.precio_venta_m2))
+    )
+
+    return matchesGlobalSearch && matchesColumnFilters
   }).sort((a, b) => {
     if (!sortColumn) return 0
 
@@ -678,6 +702,146 @@ export default function Productos() {
                   </div>
                 </th>
                 <th style={{ padding: '16px', textAlign: 'center', fontWeight: '600' }}>Acciones</th>
+              </tr>
+              <tr style={{ background: '#f3f4f6', borderBottom: '1px solid #e5e7eb' }}>
+                <th style={{ padding: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="Filtrar..."
+                    value={columnFilters.codigo}
+                    onChange={(e) => setColumnFilters({...columnFilters, codigo: e.target.value})}
+                    style={{
+                      width: '100%',
+                      padding: '6px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      fontSize: '13px'
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </th>
+                <th style={{ padding: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="Filtrar..."
+                    value={columnFilters.nombre}
+                    onChange={(e) => setColumnFilters({...columnFilters, nombre: e.target.value})}
+                    style={{
+                      width: '100%',
+                      padding: '6px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      fontSize: '13px'
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </th>
+                <th style={{ padding: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="Filtrar..."
+                    value={columnFilters.altura}
+                    onChange={(e) => setColumnFilters({...columnFilters, altura: e.target.value})}
+                    style={{
+                      width: '100%',
+                      padding: '6px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      fontSize: '13px',
+                      textAlign: 'center'
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </th>
+                <th style={{ padding: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="Filtrar..."
+                    value={columnFilters.largo}
+                    onChange={(e) => setColumnFilters({...columnFilters, largo: e.target.value})}
+                    style={{
+                      width: '100%',
+                      padding: '6px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      fontSize: '13px',
+                      textAlign: 'center'
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </th>
+                <th style={{ padding: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="Filtrar..."
+                    value={columnFilters.separacion}
+                    onChange={(e) => setColumnFilters({...columnFilters, separacion: e.target.value})}
+                    style={{
+                      width: '100%',
+                      padding: '6px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      fontSize: '13px',
+                      textAlign: 'center'
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </th>
+                <th style={{ padding: '8px' }}>
+                </th>
+                <th style={{ padding: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="Filtrar..."
+                    value={columnFilters.precio_costo_m2}
+                    onChange={(e) => setColumnFilters({...columnFilters, precio_costo_m2: e.target.value})}
+                    style={{
+                      width: '100%',
+                      padding: '6px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      fontSize: '13px',
+                      textAlign: 'right'
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </th>
+                <th style={{ padding: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="Filtrar..."
+                    value={columnFilters.precio_venta}
+                    onChange={(e) => setColumnFilters({...columnFilters, precio_venta: e.target.value})}
+                    style={{
+                      width: '100%',
+                      padding: '6px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      fontSize: '13px',
+                      textAlign: 'right'
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </th>
+                <th style={{ padding: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="Filtrar..."
+                    value={columnFilters.precio_venta_m2}
+                    onChange={(e) => setColumnFilters({...columnFilters, precio_venta_m2: e.target.value})}
+                    style={{
+                      width: '100%',
+                      padding: '6px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      fontSize: '13px',
+                      textAlign: 'right'
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </th>
+                <th style={{ padding: '8px' }}>
+                </th>
               </tr>
             </thead>
             <tbody>
