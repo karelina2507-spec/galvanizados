@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
-import { Plus, Edit2, Trash2, Search, DollarSign, X, Check } from 'lucide-react'
+import { Plus, Edit2, Trash2, Search, DollarSign, X, Check, ArrowUp, ArrowDown } from 'lucide-react'
 
 interface Producto {
   id: string
@@ -42,6 +42,8 @@ export default function Productos() {
   const [nuevaCotizacion, setNuevaCotizacion] = useState('')
   const [editingInlineId, setEditingInlineId] = useState<string | null>(null)
   const [inlineFormData, setInlineFormData] = useState<any>({})
+  const [sortColumn, setSortColumn] = useState<string | null>(null)
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
 
   const [formData, setFormData] = useState({
     codigo_producto: '',
@@ -341,6 +343,15 @@ export default function Productos() {
     setInlineFormData({})
   }
 
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortColumn(column)
+      setSortDirection('asc')
+    }
+  }
+
   const productosFiltrados = productos.filter((producto) => {
     const searchLower = searchTerm.toLowerCase()
     return (
@@ -349,6 +360,66 @@ export default function Productos() {
       producto.subtipo?.toLowerCase().includes(searchLower) ||
       producto.categoria?.nombre?.toLowerCase().includes(searchLower)
     )
+  }).sort((a, b) => {
+    if (!sortColumn) return 0
+
+    let aValue: any
+    let bValue: any
+
+    switch (sortColumn) {
+      case 'codigo':
+        aValue = a.codigo_producto
+        bValue = b.codigo_producto
+        break
+      case 'nombre':
+        aValue = a.nombre
+        bValue = b.nombre
+        break
+      case 'altura':
+        aValue = a.altura_m || 0
+        bValue = b.altura_m || 0
+        break
+      case 'largo':
+        aValue = a.largo_m || 0
+        bValue = b.largo_m || 0
+        break
+      case 'separacion':
+        aValue = a.separacion_cm || 0
+        bValue = b.separacion_cm || 0
+        break
+      case 'precio_costo':
+        aValue = (a.altura_m && a.largo_m && a.precio_costo_m2)
+          ? a.altura_m * a.largo_m * a.precio_costo_m2
+          : 0
+        bValue = (b.altura_m && b.largo_m && b.precio_costo_m2)
+          ? b.altura_m * b.largo_m * b.precio_costo_m2
+          : 0
+        break
+      case 'precio_costo_m2':
+        aValue = a.precio_costo_m2 || 0
+        bValue = b.precio_costo_m2 || 0
+        break
+      case 'precio_venta':
+        aValue = a.precio_venta || 0
+        bValue = b.precio_venta || 0
+        break
+      case 'precio_venta_m2':
+        aValue = a.precio_venta_m2 || 0
+        bValue = b.precio_venta_m2 || 0
+        break
+      default:
+        return 0
+    }
+
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      return sortDirection === 'asc'
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue)
+    }
+
+    return sortDirection === 'asc'
+      ? aValue - bValue
+      : bValue - aValue
   })
 
   if (loading) return <Layout><div style={{ padding: '24px' }}>Cargando productos...</div></Layout>
@@ -453,15 +524,159 @@ export default function Productos() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600' }}>Código</th>
-                <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600' }}>Producto</th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '600' }}>Altura (m)</th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '600' }}>Largo (m)</th>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '600' }}>Separación (cm)</th>
-                <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600' }}>Precio Costo</th>
-                <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600' }}>Precio Costo m²</th>
-                <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600' }}>Precio Venta</th>
-                <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600' }}>Precio Venta m²</th>
+                <th
+                  onClick={() => handleSort('codigo')}
+                  style={{
+                    padding: '16px',
+                    textAlign: 'left',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    userSelect: 'none'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    Código
+                    {sortColumn === 'codigo' && (
+                      sortDirection === 'asc' ? <ArrowUp size={16} /> : <ArrowDown size={16} />
+                    )}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort('nombre')}
+                  style={{
+                    padding: '16px',
+                    textAlign: 'left',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    userSelect: 'none'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    Producto
+                    {sortColumn === 'nombre' && (
+                      sortDirection === 'asc' ? <ArrowUp size={16} /> : <ArrowDown size={16} />
+                    )}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort('altura')}
+                  style={{
+                    padding: '16px',
+                    textAlign: 'center',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    userSelect: 'none'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                    Altura (m)
+                    {sortColumn === 'altura' && (
+                      sortDirection === 'asc' ? <ArrowUp size={16} /> : <ArrowDown size={16} />
+                    )}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort('largo')}
+                  style={{
+                    padding: '16px',
+                    textAlign: 'center',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    userSelect: 'none'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                    Largo (m)
+                    {sortColumn === 'largo' && (
+                      sortDirection === 'asc' ? <ArrowUp size={16} /> : <ArrowDown size={16} />
+                    )}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort('separacion')}
+                  style={{
+                    padding: '16px',
+                    textAlign: 'center',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    userSelect: 'none'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                    Separación (cm)
+                    {sortColumn === 'separacion' && (
+                      sortDirection === 'asc' ? <ArrowUp size={16} /> : <ArrowDown size={16} />
+                    )}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort('precio_costo')}
+                  style={{
+                    padding: '16px',
+                    textAlign: 'right',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    userSelect: 'none'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                    Precio Costo
+                    {sortColumn === 'precio_costo' && (
+                      sortDirection === 'asc' ? <ArrowUp size={16} /> : <ArrowDown size={16} />
+                    )}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort('precio_costo_m2')}
+                  style={{
+                    padding: '16px',
+                    textAlign: 'right',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    userSelect: 'none'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                    Precio Costo m²
+                    {sortColumn === 'precio_costo_m2' && (
+                      sortDirection === 'asc' ? <ArrowUp size={16} /> : <ArrowDown size={16} />
+                    )}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort('precio_venta')}
+                  style={{
+                    padding: '16px',
+                    textAlign: 'right',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    userSelect: 'none'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                    Precio Venta
+                    {sortColumn === 'precio_venta' && (
+                      sortDirection === 'asc' ? <ArrowUp size={16} /> : <ArrowDown size={16} />
+                    )}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort('precio_venta_m2')}
+                  style={{
+                    padding: '16px',
+                    textAlign: 'right',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    userSelect: 'none'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                    Precio Venta m²
+                    {sortColumn === 'precio_venta_m2' && (
+                      sortDirection === 'asc' ? <ArrowUp size={16} /> : <ArrowDown size={16} />
+                    )}
+                  </div>
+                </th>
                 <th style={{ padding: '16px', textAlign: 'center', fontWeight: '600' }}>Acciones</th>
               </tr>
             </thead>
