@@ -431,17 +431,17 @@ export default function Productos() {
                   </td>
                   <td style={{ padding: '16px', textAlign: 'right' }}>
                     {producto.altura_m && producto.largo_m && producto.precio_costo_m2
-                      ? `$${(producto.altura_m * producto.largo_m * producto.precio_costo_m2).toFixed(2)}`
+                      ? `US$${(producto.altura_m * producto.largo_m * producto.precio_costo_m2).toFixed(2)}`
                       : '-'}
                   </td>
                   <td style={{ padding: '16px', textAlign: 'right' }}>
-                    {producto.precio_costo_m2 ? `$${Number(producto.precio_costo_m2).toFixed(2)}` : '-'}
+                    {producto.precio_costo_m2 ? `US$${Number(producto.precio_costo_m2).toFixed(2)}` : '-'}
                   </td>
                   <td style={{ padding: '16px', textAlign: 'right' }}>
-                    ${Number(producto.precio_venta || 0).toLocaleString()}
+                    $U{Number(producto.precio_venta || 0).toLocaleString()}
                   </td>
                   <td style={{ padding: '16px', textAlign: 'right' }}>
-                    {producto.precio_venta_m2 ? `$${Number(producto.precio_venta_m2).toFixed(2)}` : '-'}
+                    {producto.precio_venta_m2 ? `$U${Number(producto.precio_venta_m2).toFixed(2)}` : '-'}
                   </td>
                   <td style={{ padding: '16px', textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
