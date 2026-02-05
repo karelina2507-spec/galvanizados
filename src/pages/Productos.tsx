@@ -405,8 +405,8 @@ export default function Productos() {
                 <th style={{ padding: '16px', textAlign: 'center', fontWeight: '600' }}>Altura (m)</th>
                 <th style={{ padding: '16px', textAlign: 'center', fontWeight: '600' }}>Largo (m)</th>
                 <th style={{ padding: '16px', textAlign: 'center', fontWeight: '600' }}>Separación (cm)</th>
-                <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600' }}>P. Compra</th>
-                <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600' }}>P. Costo m²</th>
+                <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600' }}>Precio Costo</th>
+                <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600' }}>Precio Costo m²</th>
                 <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600' }}>P. Venta</th>
                 <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600' }}>P. Venta m²</th>
                 <th style={{ padding: '16px', textAlign: 'center', fontWeight: '600' }}>Acciones</th>
