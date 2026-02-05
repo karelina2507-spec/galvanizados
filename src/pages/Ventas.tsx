@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
 import MapaPicker, { MapaPickerRef } from '../components/MapaPicker'
-import { Plus, Trash2, AlertCircle, X, MapPin, Search, ChevronDown, ChevronRight } from 'lucide-react'
+import { Plus, Trash2, AlertCircle, X, MapPin, Search, ChevronDown, ChevronRight, MessageCircle } from 'lucide-react'
 import '../styles/pages.css'
 
 interface Venta {
@@ -496,6 +496,95 @@ export default function Ventas() {
     }
 
     return nombre
+  }
+
+  const compartirVentaPorWhatsApp = async (venta: Venta) => {
+    try {
+      const { data: ventaCompleta, error: ventaError } = await supabase
+        .from('ventas')
+        .select('*, cliente:clientes(nombre, telefono)')
+        .eq('id', venta.id)
+        .single()
+
+      if (ventaError) throw ventaError
+
+      const { data: detalles, error } = await supabase
+        .from('detalle_ventas')
+        .select('cantidad, precio_unitario, subtotal_item, producto:productos(codigo_producto, nombre, altura_m, largo_m, separacion_cm)')
+        .eq('venta_id', venta.id)
+
+      if (error) throw error
+
+      let mensaje = `*COMPROBANTE DE VENTA*\n`
+      mensaje += `*${venta.numero_venta}*\n\n`
+      mensaje += `📅 Fecha: ${new Date(venta.fecha_venta).toLocaleDateString('es-UY')}\n`
+
+      if (ventaCompleta.cliente) {
+        mensaje += `👤 Cliente: ${ventaCompleta.cliente.nombre}\n`
+      }
+
+      if (venta.direccion || venta.localidad || venta.departamento) {
+        mensaje += `📍 Entrega: `
+        if (venta.direccion) mensaje += venta.direccion
+        if (venta.localidad) mensaje += `, ${venta.localidad}`
+        if (venta.departamento) mensaje += `, ${venta.departamento}`
+        mensaje += `\n`
+      }
+
+      mensaje += `\n*DETALLE DE PRODUCTOS:*\n`
+      mensaje += `━━━━━━━━━━━━━━━━\n`
+
+      detalles?.forEach((det: any) => {
+        let nombreProducto = det.producto ? `${det.producto.codigo_producto} - ${det.producto.nombre}` : 'Producto'
+
+        if (det.producto && (det.producto.altura_m || det.producto.largo_m || det.producto.separacion_cm)) {
+          nombreProducto += ' ('
+          if (det.producto.altura_m) nombreProducto += `${det.producto.altura_m}m`
+          if (det.producto.largo_m) nombreProducto += ` x ${det.producto.largo_m}m`
+          if (det.producto.separacion_cm) nombreProducto += ` - ${det.producto.separacion_cm}cm`
+          nombreProducto += ')'
+        }
+
+        mensaje += `\n${nombreProducto}\n`
+        mensaje += `   Cantidad: ${det.cantidad}\n`
+        mensaje += `   Precio: $${det.precio_unitario.toFixed(2)}\n`
+        mensaje += `   Subtotal: $${det.subtotal_item.toFixed(2)}\n`
+      })
+
+      mensaje += `\n━━━━━━━━━━━━━━━━\n`
+      mensaje += `💰 Subtotal: $${ventaCompleta.subtotal?.toFixed(2) || '0.00'}\n`
+
+      if (ventaCompleta.envio && ventaCompleta.envio > 0) {
+        mensaje += `🚚 Envío: $${ventaCompleta.envio.toFixed(2)}\n`
+      }
+
+      if (ventaCompleta.descuento && ventaCompleta.descuento > 0) {
+        mensaje += `🎯 Descuento: -$${ventaCompleta.descuento.toFixed(2)}\n`
+      }
+
+      mensaje += `\n*TOTAL: $${venta.total.toFixed(2)}*\n`
+
+      if (ventaCompleta.notas) {
+        mensaje += `\n📝 Notas: ${ventaCompleta.notas}\n`
+      }
+
+      mensaje += `\n¡Gracias por su compra!`
+
+      const mensajeCodificado = encodeURIComponent(mensaje)
+      let urlWhatsApp = ''
+
+      if (ventaCompleta.cliente?.telefono) {
+        const telefonoLimpio = ventaCompleta.cliente.telefono.replace(/\D/g, '')
+        urlWhatsApp = `https://wa.me/${telefonoLimpio}?text=${mensajeCodificado}`
+      } else {
+        urlWhatsApp = `https://wa.me/?text=${mensajeCodificado}`
+      }
+
+      window.open(urlWhatsApp, '_blank')
+    } catch (err: any) {
+      console.error('Error al compartir por WhatsApp:', err.message)
+      setError('Error al preparar el mensaje de WhatsApp')
+    }
   }
 
   const localidadesDisponiblesFiltro = filtroDepartamento
@@ -1202,13 +1291,14 @@ export default function Ventas() {
                   <th>Dirección</th>
                   <th>Fecha</th>
                   <th>Total</th>
+                  <th>Acciones</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 {ventasFiltradas.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="empty-state">
+                    <td colSpan={7} className="empty-state">
                       {searchTerm || filtroEstado || filtroCliente || filtroProducto || filtroDepartamento || filtroLocalidad || filtroTipoEntrega
                         ? 'No se encontraron ventas con los filtros aplicados'
                         : 'No hay ventas registradas'}
@@ -1218,9 +1308,7 @@ export default function Ventas() {
                   ventasFiltradas.map((venta) => (
                     <React.Fragment key={venta.id}>
                       <tr
-                        onClick={() => toggleVentaExpandida(venta.id)}
                         style={{
-                          cursor: 'pointer',
                           transition: 'background-color 0.2s',
                         }}
                         onMouseEnter={(e) => {
@@ -1230,9 +1318,22 @@ export default function Ventas() {
                           e.currentTarget.style.backgroundColor = ''
                         }}
                       >
-                        <td>{venta.numero_venta}</td>
-                        <td>{venta.cliente?.nombre || 'Sin cliente'}</td>
-                        <td>
+                        <td
+                          onClick={() => toggleVentaExpandida(venta.id)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          {venta.numero_venta}
+                        </td>
+                        <td
+                          onClick={() => toggleVentaExpandida(venta.id)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          {venta.cliente?.nombre || 'Sin cliente'}
+                        </td>
+                        <td
+                          onClick={() => toggleVentaExpandida(venta.id)}
+                          style={{ cursor: 'pointer' }}
+                        >
                           {venta.localidad || venta.departamento ? (
                             <>
                               {venta.localidad && `${venta.localidad}, `}
@@ -1250,9 +1351,44 @@ export default function Ventas() {
                             '-'
                           )}
                         </td>
-                        <td>{new Date(venta.fecha_venta).toLocaleDateString()}</td>
-                        <td>${venta.total?.toFixed(2) || '0.00'}</td>
+                        <td
+                          onClick={() => toggleVentaExpandida(venta.id)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          {new Date(venta.fecha_venta).toLocaleDateString()}
+                        </td>
+                        <td
+                          onClick={() => toggleVentaExpandida(venta.id)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          ${venta.total?.toFixed(2) || '0.00'}
+                        </td>
                         <td style={{ textAlign: 'center' }}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              compartirVentaPorWhatsApp(venta)
+                            }}
+                            style={{
+                              padding: '0.5rem',
+                              backgroundColor: '#dcfce7',
+                              color: '#16a34a',
+                              border: 'none',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                            title="Compartir por WhatsApp"
+                          >
+                            <MessageCircle size={16} />
+                          </button>
+                        </td>
+                        <td
+                          onClick={() => toggleVentaExpandida(venta.id)}
+                          style={{ textAlign: 'center', cursor: 'pointer' }}
+                        >
                           {ventaExpandida === venta.id ? (
                             <ChevronDown size={20} color="#64748b" />
                           ) : (
@@ -1262,7 +1398,7 @@ export default function Ventas() {
                       </tr>
                       {ventaExpandida === venta.id && (
                         <tr>
-                          <td colSpan={6} style={{ padding: 0, backgroundColor: '#f8fafc' }}>
+                          <td colSpan={7} style={{ padding: 0, backgroundColor: '#f8fafc' }}>
                             <div style={{ padding: '1rem 2rem' }}>
                               <h4 style={{ marginBottom: '0.5rem', color: '#1e293b' }}>
                                 Detalle de Productos

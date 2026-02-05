@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
-import { FileText, Plus, Search, Trash2, CheckCircle, XCircle, Clock, X, Truck, AlertCircle } from 'lucide-react'
+import { FileText, Plus, Search, Trash2, CheckCircle, XCircle, Clock, X, Truck, AlertCircle, MessageCircle } from 'lucide-react'
 import MapaPicker from '../components/MapaPicker'
 
 interface Presupuesto {
@@ -292,6 +292,78 @@ export default function Presupuestos() {
     }
   }
 
+  const compartirPorWhatsApp = async (presupuesto: Presupuesto) => {
+    try {
+      const { data: detalles, error } = await supabase
+        .from('detalle_presupuestos')
+        .select('cantidad, precio_unitario, subtotal_item, producto:productos(codigo_producto, nombre, altura_m, largo_m, separacion_cm)')
+        .eq('presupuesto_id', presupuesto.id)
+
+      if (error) throw error
+
+      let mensaje = `*PRESUPUESTO ${presupuesto.numero_presupuesto}*\n\n`
+      mensaje += `📅 Fecha: ${new Date(presupuesto.fecha_presupuesto).toLocaleDateString('es-UY')}\n`
+
+      if (presupuesto.cliente) {
+        mensaje += `👤 Cliente: ${presupuesto.cliente.nombre}\n`
+      }
+
+      mensaje += `\n*DETALLE DE PRODUCTOS:*\n`
+      mensaje += `━━━━━━━━━━━━━━━━\n`
+
+      detalles?.forEach((det: any) => {
+        let nombreProducto = det.producto ? `${det.producto.codigo_producto} - ${det.producto.nombre}` : 'Producto'
+
+        if (det.producto && (det.producto.altura_m || det.producto.largo_m || det.producto.separacion_cm)) {
+          nombreProducto += ' ('
+          if (det.producto.altura_m) nombreProducto += `${det.producto.altura_m}m`
+          if (det.producto.largo_m) nombreProducto += ` x ${det.producto.largo_m}m`
+          if (det.producto.separacion_cm) nombreProducto += ` - ${det.producto.separacion_cm}cm`
+          nombreProducto += ')'
+        }
+
+        mensaje += `\n${nombreProducto}\n`
+        mensaje += `   Cantidad: ${det.cantidad}\n`
+        mensaje += `   Precio: $${det.precio_unitario.toFixed(2)}\n`
+        mensaje += `   Subtotal: $${det.subtotal_item.toFixed(2)}\n`
+      })
+
+      mensaje += `\n━━━━━━━━━━━━━━━━\n`
+      mensaje += `💰 Subtotal: $${presupuesto.subtotal.toFixed(2)}\n`
+
+      if (presupuesto.descuento > 0) {
+        mensaje += `🎯 Descuento: -$${presupuesto.descuento.toFixed(2)}\n`
+      }
+
+      mensaje += `\n*TOTAL: $${presupuesto.total.toFixed(2)}*\n`
+
+      if (presupuesto.notas) {
+        mensaje += `\n📝 Notas: ${presupuesto.notas}\n`
+      }
+
+      const { data: clienteData } = await supabase
+        .from('clientes')
+        .select('telefono')
+        .eq('id', presupuesto.cliente_id)
+        .maybeSingle()
+
+      const mensajeCodificado = encodeURIComponent(mensaje)
+      let urlWhatsApp = ''
+
+      if (clienteData?.telefono) {
+        const telefonoLimpio = clienteData.telefono.replace(/\D/g, '')
+        urlWhatsApp = `https://wa.me/${telefonoLimpio}?text=${mensajeCodificado}`
+      } else {
+        urlWhatsApp = `https://wa.me/?text=${mensajeCodificado}`
+      }
+
+      window.open(urlWhatsApp, '_blank')
+    } catch (err: any) {
+      console.error('Error al compartir por WhatsApp:', err.message)
+      setError('Error al preparar el mensaje de WhatsApp')
+    }
+  }
+
   const getEstadoBadge = (estado: string) => {
     const estados: Record<string, { color: string; bg: string; icon: any; label: string }> = {
       pendiente: { color: '#f59e0b', bg: '#fef3c7', icon: Clock, label: 'Pendiente' },
@@ -558,6 +630,26 @@ export default function Presupuestos() {
                               justifyContent: 'center',
                             }}
                           >
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                compartirPorWhatsApp(presupuesto)
+                              }}
+                              style={{
+                                padding: '0.5rem',
+                                backgroundColor: '#dcfce7',
+                                color: '#16a34a',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                              title="Compartir por WhatsApp"
+                            >
+                              <MessageCircle size={16} />
+                            </button>
                             {presupuesto.estado !== 'convertido' && (
                               <button
                                 onClick={() => handleCambiarEstado(presupuesto, 'aprobado')}
