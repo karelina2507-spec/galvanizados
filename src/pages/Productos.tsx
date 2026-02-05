@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
-import { Plus, Edit2, Trash2, Search, DollarSign, X } from 'lucide-react'
+import { Plus, Edit2, Trash2, Search, DollarSign, X, Check } from 'lucide-react'
 
 interface Producto {
   id: string
@@ -40,6 +40,8 @@ export default function Productos() {
   const [cotizacionDolar, setCotizacionDolar] = useState<number | null>(null)
   const [showCotizacionModal, setShowCotizacionModal] = useState(false)
   const [nuevaCotizacion, setNuevaCotizacion] = useState('')
+  const [editingInlineId, setEditingInlineId] = useState<string | null>(null)
+  const [inlineFormData, setInlineFormData] = useState<any>({})
 
   const [formData, setFormData] = useState({
     codigo_producto: '',
@@ -288,6 +290,57 @@ export default function Productos() {
     }
   }
 
+  const handleInlineEdit = (producto: Producto) => {
+    setEditingInlineId(producto.id)
+    setInlineFormData({
+      codigo_producto: producto.codigo_producto,
+      nombre: producto.nombre,
+      subtipo: producto.subtipo || '',
+      altura_m: producto.altura_m?.toString() || '',
+      largo_m: producto.largo_m?.toString() || '',
+      separacion_cm: producto.separacion_cm?.toString() || '',
+      precio_costo_m2: producto.precio_costo_m2?.toString() || '',
+      precio_venta: producto.precio_venta.toString(),
+      precio_venta_m2: producto.precio_venta_m2?.toString() || '',
+    })
+  }
+
+  const handleInlineSave = async () => {
+    if (!editingInlineId) return
+
+    try {
+      const dataToSave = {
+        codigo_producto: inlineFormData.codigo_producto,
+        nombre: inlineFormData.nombre,
+        subtipo: inlineFormData.subtipo,
+        altura_m: inlineFormData.altura_m ? parseFloat(inlineFormData.altura_m) : null,
+        largo_m: inlineFormData.largo_m ? parseFloat(inlineFormData.largo_m) : null,
+        separacion_cm: inlineFormData.separacion_cm ? parseFloat(inlineFormData.separacion_cm) : null,
+        precio_costo_m2: inlineFormData.precio_costo_m2 ? parseFloat(inlineFormData.precio_costo_m2) : null,
+        precio_venta: parseFloat(inlineFormData.precio_venta) || 0,
+        precio_venta_m2: inlineFormData.precio_venta_m2 ? parseFloat(inlineFormData.precio_venta_m2) : null,
+      }
+
+      const { error } = await supabase
+        .from('productos')
+        .update(dataToSave)
+        .eq('id', editingInlineId)
+
+      if (error) throw error
+
+      fetchProductos()
+      setEditingInlineId(null)
+      setInlineFormData({})
+    } catch (error: any) {
+      alert('Error: ' + error.message)
+    }
+  }
+
+  const handleInlineCancel = () => {
+    setEditingInlineId(null)
+    setInlineFormData({})
+  }
+
   const productosFiltrados = productos.filter((producto) => {
     const searchLower = searchTerm.toLowerCase()
     return (
@@ -413,54 +466,249 @@ export default function Productos() {
               </tr>
             </thead>
             <tbody>
-              {productosFiltrados.map((producto) => (
-                <tr key={producto.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                  <td style={{ padding: '16px' }}>{producto.codigo_producto}</td>
-                  <td style={{ padding: '16px' }}>
-                    <div style={{ fontWeight: '600' }}>{producto.nombre}</div>
-                    <div style={{ fontSize: '14px', color: '#6b7280' }}>{producto.subtipo}</div>
-                  </td>
-                  <td style={{ padding: '16px', textAlign: 'center' }}>
-                    {producto.altura_m ? producto.altura_m : '-'}
-                  </td>
-                  <td style={{ padding: '16px', textAlign: 'center' }}>
-                    {producto.largo_m ? producto.largo_m : '-'}
-                  </td>
-                  <td style={{ padding: '16px', textAlign: 'center' }}>
-                    {producto.separacion_cm ? producto.separacion_cm : '-'}
-                  </td>
-                  <td style={{ padding: '16px', textAlign: 'right' }}>
-                    {producto.altura_m && producto.largo_m && producto.precio_costo_m2
-                      ? `US$${(producto.altura_m * producto.largo_m * producto.precio_costo_m2).toFixed(2)}`
-                      : '-'}
-                  </td>
-                  <td style={{ padding: '16px', textAlign: 'right' }}>
-                    {producto.precio_costo_m2 ? `US$${Number(producto.precio_costo_m2).toFixed(2)}` : '-'}
-                  </td>
-                  <td style={{ padding: '16px', textAlign: 'right' }}>
-                    $U{Number(producto.precio_venta || 0).toLocaleString()}
-                  </td>
-                  <td style={{ padding: '16px', textAlign: 'right' }}>
-                    {producto.precio_venta_m2 ? `$U${Number(producto.precio_venta_m2).toFixed(2)}` : '-'}
-                  </td>
-                  <td style={{ padding: '16px', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                      <button
-                        onClick={() => handleEdit(producto)}
-                        style={{ padding: '8px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(producto.id)}
-                        style={{ padding: '8px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {productosFiltrados.map((producto) => {
+                const isEditingInline = editingInlineId === producto.id
+                return (
+                  <tr
+                    key={producto.id}
+                    style={{
+                      borderBottom: '1px solid #e5e7eb',
+                      background: isEditingInline ? '#f0f9ff' : 'transparent',
+                      cursor: isEditingInline ? 'default' : 'pointer'
+                    }}
+                    onDoubleClick={() => !isEditingInline && handleInlineEdit(producto)}
+                    title={!isEditingInline ? 'Doble clic para editar' : ''}
+                  >
+                    <td style={{ padding: '8px' }}>
+                      {isEditingInline ? (
+                        <input
+                          type="text"
+                          value={inlineFormData.codigo_producto}
+                          onChange={(e) => setInlineFormData({...inlineFormData, codigo_producto: e.target.value})}
+                          style={{
+                            width: '100%',
+                            padding: '6px',
+                            border: '1px solid #3b82f6',
+                            borderRadius: '4px',
+                            fontSize: '14px'
+                          }}
+                        />
+                      ) : (
+                        producto.codigo_producto
+                      )}
+                    </td>
+                    <td style={{ padding: '8px' }}>
+                      {isEditingInline ? (
+                        <>
+                          <input
+                            type="text"
+                            value={inlineFormData.nombre}
+                            onChange={(e) => setInlineFormData({...inlineFormData, nombre: e.target.value})}
+                            style={{
+                              width: '100%',
+                              padding: '6px',
+                              border: '1px solid #3b82f6',
+                              borderRadius: '4px',
+                              fontSize: '14px',
+                              marginBottom: '4px'
+                            }}
+                            placeholder="Nombre"
+                          />
+                          <input
+                            type="text"
+                            value={inlineFormData.subtipo}
+                            onChange={(e) => setInlineFormData({...inlineFormData, subtipo: e.target.value})}
+                            style={{
+                              width: '100%',
+                              padding: '6px',
+                              border: '1px solid #3b82f6',
+                              borderRadius: '4px',
+                              fontSize: '12px'
+                            }}
+                            placeholder="Subtipo"
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <div style={{ fontWeight: '600' }}>{producto.nombre}</div>
+                          <div style={{ fontSize: '14px', color: '#6b7280' }}>{producto.subtipo}</div>
+                        </>
+                      )}
+                    </td>
+                    <td style={{ padding: '8px', textAlign: 'center' }}>
+                      {isEditingInline ? (
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={inlineFormData.altura_m}
+                          onChange={(e) => setInlineFormData({...inlineFormData, altura_m: e.target.value})}
+                          style={{
+                            width: '80px',
+                            padding: '6px',
+                            border: '1px solid #3b82f6',
+                            borderRadius: '4px',
+                            fontSize: '14px',
+                            textAlign: 'center'
+                          }}
+                        />
+                      ) : (
+                        producto.altura_m ? producto.altura_m : '-'
+                      )}
+                    </td>
+                    <td style={{ padding: '8px', textAlign: 'center' }}>
+                      {isEditingInline ? (
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={inlineFormData.largo_m}
+                          onChange={(e) => setInlineFormData({...inlineFormData, largo_m: e.target.value})}
+                          style={{
+                            width: '80px',
+                            padding: '6px',
+                            border: '1px solid #3b82f6',
+                            borderRadius: '4px',
+                            fontSize: '14px',
+                            textAlign: 'center'
+                          }}
+                        />
+                      ) : (
+                        producto.largo_m ? producto.largo_m : '-'
+                      )}
+                    </td>
+                    <td style={{ padding: '8px', textAlign: 'center' }}>
+                      {isEditingInline ? (
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={inlineFormData.separacion_cm}
+                          onChange={(e) => setInlineFormData({...inlineFormData, separacion_cm: e.target.value})}
+                          style={{
+                            width: '80px',
+                            padding: '6px',
+                            border: '1px solid #3b82f6',
+                            borderRadius: '4px',
+                            fontSize: '14px',
+                            textAlign: 'center'
+                          }}
+                        />
+                      ) : (
+                        producto.separacion_cm ? producto.separacion_cm : '-'
+                      )}
+                    </td>
+                    <td style={{ padding: '8px', textAlign: 'right' }}>
+                      {isEditingInline ? (
+                        inlineFormData.altura_m && inlineFormData.largo_m && inlineFormData.precio_costo_m2
+                          ? `US$${(parseFloat(inlineFormData.altura_m) * parseFloat(inlineFormData.largo_m) * parseFloat(inlineFormData.precio_costo_m2)).toFixed(2)}`
+                          : '-'
+                      ) : (
+                        producto.altura_m && producto.largo_m && producto.precio_costo_m2
+                          ? `US$${(producto.altura_m * producto.largo_m * producto.precio_costo_m2).toFixed(2)}`
+                          : '-'
+                      )}
+                    </td>
+                    <td style={{ padding: '8px', textAlign: 'right' }}>
+                      {isEditingInline ? (
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={inlineFormData.precio_costo_m2}
+                          onChange={(e) => setInlineFormData({...inlineFormData, precio_costo_m2: e.target.value})}
+                          style={{
+                            width: '100px',
+                            padding: '6px',
+                            border: '1px solid #3b82f6',
+                            borderRadius: '4px',
+                            fontSize: '14px',
+                            textAlign: 'right'
+                          }}
+                          placeholder="0.00"
+                        />
+                      ) : (
+                        producto.precio_costo_m2 ? `US$${Number(producto.precio_costo_m2).toFixed(2)}` : '-'
+                      )}
+                    </td>
+                    <td style={{ padding: '8px', textAlign: 'right' }}>
+                      {isEditingInline ? (
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={inlineFormData.precio_venta}
+                          onChange={(e) => setInlineFormData({...inlineFormData, precio_venta: e.target.value})}
+                          style={{
+                            width: '100px',
+                            padding: '6px',
+                            border: '1px solid #3b82f6',
+                            borderRadius: '4px',
+                            fontSize: '14px',
+                            textAlign: 'right'
+                          }}
+                          placeholder="0.00"
+                        />
+                      ) : (
+                        `$U${Number(producto.precio_venta || 0).toLocaleString()}`
+                      )}
+                    </td>
+                    <td style={{ padding: '8px', textAlign: 'right' }}>
+                      {isEditingInline ? (
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={inlineFormData.precio_venta_m2}
+                          onChange={(e) => setInlineFormData({...inlineFormData, precio_venta_m2: e.target.value})}
+                          style={{
+                            width: '100px',
+                            padding: '6px',
+                            border: '1px solid #3b82f6',
+                            borderRadius: '4px',
+                            fontSize: '14px',
+                            textAlign: 'right'
+                          }}
+                          placeholder="0.00"
+                        />
+                      ) : (
+                        producto.precio_venta_m2 ? `$U${Number(producto.precio_venta_m2).toFixed(2)}` : '-'
+                      )}
+                    </td>
+                    <td style={{ padding: '8px', textAlign: 'center' }}>
+                      {isEditingInline ? (
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                          <button
+                            onClick={handleInlineSave}
+                            style={{ padding: '8px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                            title="Guardar"
+                          >
+                            <Check size={16} />
+                          </button>
+                          <button
+                            onClick={handleInlineCancel}
+                            style={{ padding: '8px', background: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                            title="Cancelar"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                          <button
+                            onClick={() => handleEdit(producto)}
+                            style={{ padding: '8px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                            title="Editar en modal"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(producto.id)}
+                            style={{ padding: '8px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                            title="Eliminar"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
           {productosFiltrados.length === 0 && (
