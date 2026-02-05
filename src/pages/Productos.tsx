@@ -433,15 +433,15 @@ export default function Productos() {
   const productosFiltrados = productos.filter((producto) => {
     const searchLower = searchTerm.toLowerCase()
     const matchesGlobalSearch = (
-      producto.codigo_producto.toLowerCase().includes(searchLower) ||
-      producto.nombre.toLowerCase().includes(searchLower) ||
-      producto.subtipo?.toLowerCase().includes(searchLower) ||
-      producto.categoria?.nombre?.toLowerCase().includes(searchLower)
+      (producto.codigo_producto?.toLowerCase() || '').includes(searchLower) ||
+      (producto.nombre?.toLowerCase() || '').includes(searchLower) ||
+      (producto.subtipo?.toLowerCase() || '').includes(searchLower) ||
+      (producto.categoria?.nombre?.toLowerCase() || '').includes(searchLower)
     )
 
     const matchesColumnFilters = (
-      producto.codigo_producto.toLowerCase().includes(columnFilters.codigo.toLowerCase()) &&
-      producto.nombre.toLowerCase().includes(columnFilters.nombre.toLowerCase()) &&
+      (producto.codigo_producto?.toLowerCase() || '').includes(columnFilters.codigo.toLowerCase()) &&
+      (producto.nombre?.toLowerCase() || '').includes(columnFilters.nombre.toLowerCase()) &&
       (columnFilters.altura === '' || (producto.altura_m?.toString() || '').includes(columnFilters.altura)) &&
       (columnFilters.largo === '' || (producto.largo_m?.toString() || '').includes(columnFilters.largo)) &&
       (columnFilters.separacion === '' || (producto.separacion_cm?.toString() || '').includes(columnFilters.separacion)) &&
