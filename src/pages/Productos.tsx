@@ -21,6 +21,7 @@ interface Producto {
   largo_m?: number
   separacion_cm?: number
   m2_rollo?: number
+  imagen_url?: string
   creado_en: string
 }
 
@@ -55,6 +56,8 @@ export default function Productos() {
     precio_venta: '',
     precio_venta_m2: ''
   })
+  const [imagenFile, setImagenFile] = useState<File | null>(null)
+  const [imagenPreview, setImagenPreview] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
     codigo_producto: '',
@@ -206,6 +209,49 @@ export default function Productos() {
     }
   }
 
+  const handleImagenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 5242880) {
+        alert('La imagen no puede superar 5MB')
+        return
+      }
+      setImagenFile(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagenPreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const uploadImagen = async (file: File, productoId: string): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${productoId}-${Date.now()}.${fileExt}`
+      const filePath = `${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('producto-imagenes')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        })
+
+      if (uploadError) throw uploadError
+
+      const { data } = supabase.storage
+        .from('producto-imagenes')
+        .getPublicUrl(filePath)
+
+      return data.publicUrl
+    } catch (error: any) {
+      console.error('Error al subir imagen:', error)
+      alert('Error al subir la imagen: ' + error.message)
+      return null
+    }
+  }
+
   const handleEdit = (producto: Producto) => {
     setEditingId(producto.id)
     setFormData({
@@ -223,6 +269,8 @@ export default function Productos() {
       separacion_cm: producto.separacion_cm?.toString() || '',
       m2_rollo: producto.m2_rollo?.toString() || '',
     })
+    setImagenPreview(producto.imagen_url || null)
+    setImagenFile(null)
     setShowForm(true)
   }
 
@@ -244,6 +292,8 @@ export default function Productos() {
         m2_rollo: formData.m2_rollo ? parseFloat(formData.m2_rollo) : null,
       }
 
+      let productoId = editingId
+
       if (editingId) {
         const { error } = await supabase
           .from('productos')
@@ -252,11 +302,26 @@ export default function Productos() {
 
         if (error) throw error
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('productos')
           .insert([dataToSave])
+          .select()
+          .single()
 
         if (error) throw error
+        productoId = data.id
+      }
+
+      if (imagenFile && productoId) {
+        const imagenUrl = await uploadImagen(imagenFile, productoId)
+        if (imagenUrl) {
+          const { error: updateError } = await supabase
+            .from('productos')
+            .update({ imagen_url: imagenUrl })
+            .eq('id', productoId)
+
+          if (updateError) throw updateError
+        }
       }
 
       fetchProductos()
@@ -285,6 +350,8 @@ export default function Productos() {
       m2_rollo: '',
     })
     setEditingId(null)
+    setImagenFile(null)
+    setImagenPreview(null)
   }
 
   const handleDelete = async (id: string) => {
@@ -548,6 +615,9 @@ export default function Productos() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '600' }}>
+                  Imagen
+                </th>
                 <th
                   onClick={() => handleSort('codigo')}
                   style={{
@@ -705,6 +775,8 @@ export default function Productos() {
               </tr>
               <tr style={{ background: '#f3f4f6', borderBottom: '1px solid #e5e7eb' }}>
                 <th style={{ padding: '8px' }}>
+                </th>
+                <th style={{ padding: '8px' }}>
                   <input
                     type="text"
                     placeholder="Filtrar..."
@@ -858,6 +930,36 @@ export default function Productos() {
                     onDoubleClick={() => !isEditingInline && handleInlineEdit(producto)}
                     title={!isEditingInline ? 'Doble clic para editar' : ''}
                   >
+                    <td style={{ padding: '8px', textAlign: 'center' }}>
+                      {producto.imagen_url ? (
+                        <img
+                          src={producto.imagen_url}
+                          alt={producto.nombre}
+                          style={{
+                            width: '50px',
+                            height: '50px',
+                            objectFit: 'cover',
+                            borderRadius: '6px',
+                            border: '1px solid #e5e7eb'
+                          }}
+                        />
+                      ) : (
+                        <div style={{
+                          width: '50px',
+                          height: '50px',
+                          background: '#f3f4f6',
+                          borderRadius: '6px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '20px',
+                          color: '#9ca3af',
+                          margin: '0 auto'
+                        }}>
+                          📦
+                        </div>
+                      )}
+                    </td>
                     <td style={{ padding: '8px' }}>
                       {isEditingInline ? (
                         <input
@@ -1317,6 +1419,58 @@ export default function Productos() {
                         resize: 'vertical'
                       }}
                     />
+                  </div>
+
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                      Imagen del Producto
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImagenChange}
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        fontSize: '14px'
+                      }}
+                    />
+                    {imagenPreview && (
+                      <div style={{ marginTop: '12px', textAlign: 'center' }}>
+                        <img
+                          src={imagenPreview}
+                          alt="Preview"
+                          style={{
+                            maxWidth: '200px',
+                            maxHeight: '200px',
+                            borderRadius: '8px',
+                            border: '2px solid #e5e7eb'
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setImagenFile(null)
+                            setImagenPreview(null)
+                          }}
+                          style={{
+                            display: 'block',
+                            margin: '8px auto 0',
+                            padding: '6px 12px',
+                            background: '#ef4444',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '13px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Eliminar imagen
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <div style={{ gridColumn: '1 / -1', marginTop: '16px' }}>
