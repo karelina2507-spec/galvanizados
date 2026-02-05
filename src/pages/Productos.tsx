@@ -48,6 +48,7 @@ export default function Productos() {
   const [columnFilters, setColumnFilters] = useState({
     codigo: '',
     nombre: '',
+    subtipo: '',
     altura: '',
     largo: '',
     separacion: '',
@@ -441,7 +442,10 @@ export default function Productos() {
 
     const matchesColumnFilters = (
       (producto.codigo_producto?.toLowerCase() || '').includes(columnFilters.codigo.toLowerCase()) &&
-      (producto.nombre?.toLowerCase() || '').includes(columnFilters.nombre.toLowerCase()) &&
+      (
+        (producto.nombre?.toLowerCase() || '').includes(columnFilters.nombre.toLowerCase()) ||
+        (producto.subtipo?.toLowerCase() || '').includes(columnFilters.nombre.toLowerCase())
+      ) &&
       (columnFilters.altura === '' || (producto.altura_m?.toString() || '').includes(columnFilters.altura)) &&
       (columnFilters.largo === '' || (producto.largo_m?.toString() || '').includes(columnFilters.largo)) &&
       (columnFilters.separacion === '' || (producto.separacion_cm?.toString() || '').includes(columnFilters.separacion)) &&
@@ -615,9 +619,6 @@ export default function Productos() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '600' }}>
-                  Imagen
-                </th>
                 <th
                   onClick={() => handleSort('codigo')}
                   style={{
@@ -775,8 +776,6 @@ export default function Productos() {
               </tr>
               <tr style={{ background: '#f3f4f6', borderBottom: '1px solid #e5e7eb' }}>
                 <th style={{ padding: '8px' }}>
-                </th>
-                <th style={{ padding: '8px' }}>
                   <input
                     type="text"
                     placeholder="Filtrar..."
@@ -930,36 +929,6 @@ export default function Productos() {
                     onDoubleClick={() => !isEditingInline && handleInlineEdit(producto)}
                     title={!isEditingInline ? 'Doble clic para editar' : ''}
                   >
-                    <td style={{ padding: '8px', textAlign: 'center' }}>
-                      {producto.imagen_url ? (
-                        <img
-                          src={producto.imagen_url}
-                          alt={producto.nombre}
-                          style={{
-                            width: '50px',
-                            height: '50px',
-                            objectFit: 'cover',
-                            borderRadius: '6px',
-                            border: '1px solid #e5e7eb'
-                          }}
-                        />
-                      ) : (
-                        <div style={{
-                          width: '50px',
-                          height: '50px',
-                          background: '#f3f4f6',
-                          borderRadius: '6px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '20px',
-                          color: '#9ca3af',
-                          margin: '0 auto'
-                        }}>
-                          📦
-                        </div>
-                      )}
-                    </td>
                     <td style={{ padding: '8px' }}>
                       {isEditingInline ? (
                         <input
