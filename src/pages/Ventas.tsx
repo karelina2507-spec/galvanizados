@@ -15,6 +15,8 @@ interface Venta {
   departamento: string
   localidad: string
   direccion: string
+  estado?: string
+  reparto?: boolean
   cliente?: { nombre: string }
 }
 
@@ -172,7 +174,7 @@ export default function Ventas() {
       const [ventasRes, clientesRes, productosRes, categoriasRes, promocionesRes, empresaRes] = await Promise.all([
         supabase
           .from('ventas')
-          .select('*, cliente:clientes(nombre)')
+          .select('*, cliente:clientes(nombre), estado, reparto')
           .order('fecha_venta', { ascending: false }),
         supabase.from('clientes').select('*').eq('activo', true),
         supabase.from('productos').select('*').eq('activo', true),
@@ -1290,6 +1292,8 @@ export default function Ventas() {
                   <th>Cliente</th>
                   <th>Dirección</th>
                   <th>Fecha</th>
+                  <th>Estado</th>
+                  <th>Tipo</th>
                   <th>Total</th>
                   <th>Acciones</th>
                   <th></th>
@@ -1298,7 +1302,7 @@ export default function Ventas() {
               <tbody>
                 {ventasFiltradas.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="empty-state">
+                    <td colSpan={9} className="empty-state">
                       {searchTerm || filtroEstado || filtroCliente || filtroProducto || filtroDepartamento || filtroLocalidad || filtroTipoEntrega
                         ? 'No se encontraron ventas con los filtros aplicados'
                         : 'No hay ventas registradas'}
@@ -1356,6 +1360,36 @@ export default function Ventas() {
                           style={{ cursor: 'pointer' }}
                         >
                           {new Date(venta.fecha_venta).toLocaleDateString()}
+                        </td>
+                        <td
+                          onClick={() => toggleVentaExpandida(venta.id)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <span style={{
+                            padding: '4px 12px',
+                            borderRadius: '12px',
+                            fontSize: '0.85rem',
+                            fontWeight: '500',
+                            backgroundColor: venta.estado === 'completado' ? '#dcfce7' : venta.estado === 'pendiente' ? '#fef3c7' : '#e5e7eb',
+                            color: venta.estado === 'completado' ? '#16a34a' : venta.estado === 'pendiente' ? '#ca8a04' : '#6b7280'
+                          }}>
+                            {venta.estado === 'completado' ? 'Completado' : venta.estado === 'pendiente' ? 'Pendiente' : 'Sin estado'}
+                          </span>
+                        </td>
+                        <td
+                          onClick={() => toggleVentaExpandida(venta.id)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <span style={{
+                            padding: '4px 12px',
+                            borderRadius: '12px',
+                            fontSize: '0.85rem',
+                            fontWeight: '500',
+                            backgroundColor: venta.reparto ? '#dbeafe' : '#f3f4f6',
+                            color: venta.reparto ? '#2563eb' : '#6b7280'
+                          }}>
+                            {venta.reparto ? 'Reparto' : 'Envío'}
+                          </span>
                         </td>
                         <td
                           onClick={() => toggleVentaExpandida(venta.id)}
