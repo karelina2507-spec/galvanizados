@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Package, ShoppingCart, BarChart3, Users, Truck, DollarSign, Menu, X, Navigation, Tag, FileText } from 'lucide-react'
+import { Package, ShoppingCart, BarChart3, Users, Truck, DollarSign, Menu, X, Navigation, Tag, FileText, Receipt } from 'lucide-react'
 import '../styles/layout.css'
 
 interface LayoutProps {
@@ -91,6 +91,14 @@ export default function Layout({ children }: LayoutProps) {
           >
             <ShoppingCart size={20} />
             <span>Compras</span>
+          </Link>
+
+          <Link
+            to="/gastos"
+            className={`nav-item ${isActive('/gastos') ? 'active' : ''}`}
+          >
+            <Receipt size={20} />
+            <span>Gastos</span>
           </Link>
 
           <Link

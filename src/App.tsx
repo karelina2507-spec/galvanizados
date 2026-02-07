@@ -8,6 +8,7 @@ import Ventas from './pages/Ventas'
 import NuevaVenta from './pages/NuevaVenta'
 import Rutas from './pages/Rutas'
 import Compras from './pages/Compras'
+import Gastos from './pages/Gastos'
 import Reportes from './pages/Reportes'
 import Clientes from './pages/Clientes'
 import Proveedores from './pages/Proveedores'
@@ -84,6 +85,14 @@ function App() {
             element={
               <PrivateRoute>
                 <Compras />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/gastos"
+            element={
+              <PrivateRoute>
+                <Gastos />
               </PrivateRoute>
             }
           />
