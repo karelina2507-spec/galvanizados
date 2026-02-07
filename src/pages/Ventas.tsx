@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
 import MapaPicker, { MapaPickerRef } from '../components/MapaPicker'
 import { Plus, Trash2, AlertCircle, X, MapPin, Search, ChevronDown, ChevronRight, MessageCircle } from 'lucide-react'
+import { generarBoletaPDF } from '../utils/generarBoletaPDF'
 import '../styles/pages.css'
 
 interface Venta {
@@ -517,60 +518,22 @@ export default function Ventas() {
 
       if (error) throw error
 
-      let mensaje = `*COMPROBANTE DE VENTA*\n`
-      mensaje += `*${venta.numero_venta}*\n\n`
-      mensaje += `📅 Fecha: ${new Date(venta.fecha_venta).toLocaleDateString('es-UY')}\n`
+      generarBoletaPDF(ventaCompleta, detalles || [])
 
-      if (ventaCompleta.cliente) {
-        mensaje += `👤 Cliente: ${ventaCompleta.cliente.nombre}\n`
-      }
+      let mensaje = `¡Hola! 👋\n\n`
+      mensaje += `Te envío la boleta de tu compra:\n\n`
+      mensaje += `*${venta.numero_venta}*\n`
+      mensaje += `💰 Total: $${venta.total.toFixed(2)}\n\n`
 
-      if (venta.direccion || venta.localidad || venta.departamento) {
+      if (venta.direccion || venta.localidad) {
         mensaje += `📍 Entrega: `
         if (venta.direccion) mensaje += venta.direccion
         if (venta.localidad) mensaje += `, ${venta.localidad}`
-        if (venta.departamento) mensaje += `, ${venta.departamento}`
-        mensaje += `\n`
+        mensaje += `\n\n`
       }
 
-      mensaje += `\n*DETALLE DE PRODUCTOS:*\n`
-      mensaje += `━━━━━━━━━━━━━━━━\n`
-
-      detalles?.forEach((det: any) => {
-        let nombreProducto = det.producto ? `${det.producto.codigo_producto} - ${det.producto.nombre}` : 'Producto'
-
-        if (det.producto && (det.producto.altura_m || det.producto.largo_m || det.producto.separacion_cm)) {
-          nombreProducto += ' ('
-          if (det.producto.altura_m) nombreProducto += `${det.producto.altura_m}m`
-          if (det.producto.largo_m) nombreProducto += ` x ${det.producto.largo_m}m`
-          if (det.producto.separacion_cm) nombreProducto += ` - ${det.producto.separacion_cm}cm`
-          nombreProducto += ')'
-        }
-
-        mensaje += `\n${nombreProducto}\n`
-        mensaje += `   Cantidad: ${det.cantidad}\n`
-        mensaje += `   Precio: $${det.precio_unitario.toFixed(2)}\n`
-        mensaje += `   Subtotal: $${det.subtotal_item.toFixed(2)}\n`
-      })
-
-      mensaje += `\n━━━━━━━━━━━━━━━━\n`
-      mensaje += `💰 Subtotal: $${ventaCompleta.subtotal?.toFixed(2) || '0.00'}\n`
-
-      if (ventaCompleta.envio && ventaCompleta.envio > 0) {
-        mensaje += `🚚 Envío: $${ventaCompleta.envio.toFixed(2)}\n`
-      }
-
-      if (ventaCompleta.descuento && ventaCompleta.descuento > 0) {
-        mensaje += `🎯 Descuento: -$${ventaCompleta.descuento.toFixed(2)}\n`
-      }
-
-      mensaje += `\n*TOTAL: $${venta.total.toFixed(2)}*\n`
-
-      if (ventaCompleta.notas) {
-        mensaje += `\n📝 Notas: ${ventaCompleta.notas}\n`
-      }
-
-      mensaje += `\n¡Gracias por su compra!`
+      mensaje += `Por favor, adjunta la boleta en PDF que se descargó.\n\n`
+      mensaje += `¡Gracias por tu compra! 🙏`
 
       const mensajeCodificado = encodeURIComponent(mensaje)
       let urlWhatsApp = ''
@@ -582,7 +545,10 @@ export default function Ventas() {
         urlWhatsApp = `https://wa.me/?text=${mensajeCodificado}`
       }
 
-      window.open(urlWhatsApp, '_blank')
+      setTimeout(() => {
+        window.open(urlWhatsApp, '_blank')
+      }, 500)
+
     } catch (err: any) {
       console.error('Error al compartir por WhatsApp:', err.message)
       setError('Error al preparar el mensaje de WhatsApp')
