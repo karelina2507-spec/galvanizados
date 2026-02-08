@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
 import MapaPicker, { MapaPickerRef } from '../components/MapaPicker'
-import { Plus, Trash2, AlertCircle, X, MapPin, Search, ChevronDown, ChevronRight, MessageCircle, Download } from 'lucide-react'
+import { Plus, Trash2, AlertCircle, X, MapPin, Search, ChevronDown, ChevronRight, MessageCircle, Download, Pencil } from 'lucide-react'
 import { generarBoletaPDF } from '../utils/generarBoletaPDF'
 import '../styles/pages.css'
 
@@ -53,6 +53,19 @@ export default function Ventas() {
   const [filtroDepartamento, setFiltroDepartamento] = useState('')
   const [filtroLocalidad, setFiltroLocalidad] = useState('')
   const [filtroTipoEntrega, setFiltroTipoEntrega] = useState('')
+  const [ventaEditando, setVentaEditando] = useState<Venta | null>(null)
+  const [ventaEliminando, setVentaEliminando] = useState<Venta | null>(null)
+  const [editFormData, setEditFormData] = useState({
+    cliente_id: '',
+    fecha_venta: '',
+    departamento: '',
+    localidad: '',
+    direccion: '',
+    envio: '',
+    descuento: '',
+    notas: '',
+    estado: '',
+  })
 
   const [formData, setFormData] = useState({
     numero_venta: '',
@@ -612,6 +625,111 @@ export default function Ventas() {
       setError('Error al descargar la boleta: ' + err.message)
     }
   }
+
+  const iniciarEdicion = async (venta: Venta) => {
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('ventas')
+        .select('*')
+        .eq('id', venta.id)
+        .single()
+
+      if (fetchError) throw fetchError
+
+      setEditFormData({
+        cliente_id: data.cliente_id || '',
+        fecha_venta: data.fecha_venta || '',
+        departamento: data.departamento || '',
+        localidad: data.localidad || '',
+        direccion: data.direccion || '',
+        envio: data.envio ? String(data.envio) : '',
+        descuento: data.descuento ? String(data.descuento) : '',
+        notas: data.notas || '',
+        estado: data.estado || '',
+      })
+      setVentaEditando(venta)
+    } catch (err: any) {
+      setError(err.message)
+    }
+  }
+
+  const handleEditSubmit = async () => {
+    if (!ventaEditando) return
+    setError('')
+
+    try {
+      const envio = parseFloat(editFormData.envio) || 0
+      const descuento = parseFloat(editFormData.descuento) || 0
+
+      const { data: detallesActuales, error: detError } = await supabase
+        .from('detalle_ventas')
+        .select('subtotal_item')
+        .eq('venta_id', ventaEditando.id)
+
+      if (detError) throw detError
+
+      const subtotal = (detallesActuales || []).reduce((sum: number, d: any) => sum + (d.subtotal_item || 0), 0)
+      const total = subtotal + envio - descuento
+
+      const { error: updateError } = await supabase
+        .from('ventas')
+        .update({
+          cliente_id: editFormData.cliente_id || null,
+          fecha_venta: editFormData.fecha_venta,
+          departamento: editFormData.departamento,
+          localidad: editFormData.localidad,
+          direccion: editFormData.direccion,
+          envio: editFormData.envio || '0',
+          descuento,
+          notas: editFormData.notas,
+          estado: editFormData.estado,
+          total,
+        })
+        .eq('id', ventaEditando.id)
+
+      if (updateError) throw updateError
+
+      setVentaEditando(null)
+      loadData()
+    } catch (err: any) {
+      setError(err.message)
+    }
+  }
+
+  const handleDeleteVenta = async () => {
+    if (!ventaEliminando) return
+    setError('')
+
+    try {
+      const { error: detError } = await supabase
+        .from('detalle_ventas')
+        .delete()
+        .eq('venta_id', ventaEliminando.id)
+
+      if (detError) throw detError
+
+      const { error: ventaError } = await supabase
+        .from('ventas')
+        .delete()
+        .eq('id', ventaEliminando.id)
+
+      if (ventaError) throw ventaError
+
+      setVentaEliminando(null)
+      setDetallesVentas((prev) => {
+        const copy = { ...prev }
+        delete copy[ventaEliminando.id]
+        return copy
+      })
+      loadData()
+    } catch (err: any) {
+      setError(err.message)
+    }
+  }
+
+  const editLocalidades = editFormData.departamento
+    ? localidadesPorDepartamento[editFormData.departamento] || []
+    : []
 
   const localidadesDisponiblesFiltro = filtroDepartamento
     ? localidadesPorDepartamento[filtroDepartamento] || []
@@ -1422,7 +1540,47 @@ export default function Ventas() {
                           ${venta.total?.toFixed(2) || '0.00'}
                         </td>
                         <td style={{ textAlign: 'center' }}>
-                          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                iniciarEdicion(venta)
+                              }}
+                              style={{
+                                padding: '0.5rem',
+                                backgroundColor: '#fef3c7',
+                                color: '#b45309',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                              title="Editar venta"
+                            >
+                              <Pencil size={16} />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setVentaEliminando(venta)
+                              }}
+                              style={{
+                                padding: '0.5rem',
+                                backgroundColor: '#fee2e2',
+                                color: '#dc2626',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                              title="Eliminar venta"
+                            >
+                              <Trash2 size={16} />
+                            </button>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
@@ -1450,8 +1608,8 @@ export default function Ventas() {
                               }}
                               style={{
                                 padding: '0.5rem',
-                                backgroundColor: '#e0e7ff',
-                                color: '#4f46e5',
+                                backgroundColor: '#dbeafe',
+                                color: '#2563eb',
                                 border: 'none',
                                 borderRadius: '6px',
                                 cursor: 'pointer',
@@ -1559,6 +1717,233 @@ export default function Ventas() {
                 )}
               </tbody>
             </table>
+          </div>
+        )}
+        {ventaEliminando && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}>
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '2rem',
+              maxWidth: '450px',
+              width: '90%',
+            }}>
+              <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', color: '#1e293b' }}>
+                Confirmar eliminacion
+              </h3>
+              <p style={{ color: '#64748b', marginBottom: '1.5rem' }}>
+                Esta seguro que desea eliminar la venta <strong>{ventaEliminando.numero_venta}</strong>? Esta accion no se puede deshacer y se eliminaran todos los productos asociados.
+              </p>
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => setVentaEliminando(null)}
+                  style={{
+                    padding: '0.6rem 1.2rem',
+                    backgroundColor: '#e5e7eb',
+                    color: '#374151',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontWeight: '600',
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDeleteVenta}
+                  style={{
+                    padding: '0.6rem 1.2rem',
+                    backgroundColor: '#dc2626',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontWeight: '600',
+                  }}
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {ventaEditando && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}>
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '2rem',
+              maxWidth: '600px',
+              width: '90%',
+              maxHeight: '90vh',
+              overflow: 'auto',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#1e293b' }}>
+                  Editar Venta - {ventaEditando.numero_venta}
+                </h3>
+                <button
+                  onClick={() => setVentaEditando(null)}
+                  style={{ padding: '4px', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', color: '#6b7280' }}
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group">
+                  <label>Cliente</label>
+                  <select
+                    value={editFormData.cliente_id}
+                    onChange={(e) => setEditFormData({ ...editFormData, cliente_id: e.target.value })}
+                  >
+                    <option value="">Sin cliente</option>
+                    {clientes.map((c) => (
+                      <option key={c.id} value={c.id}>{c.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Fecha Venta</label>
+                  <input
+                    type="date"
+                    value={editFormData.fecha_venta}
+                    onChange={(e) => setEditFormData({ ...editFormData, fecha_venta: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Estado</label>
+                  <select
+                    value={editFormData.estado}
+                    onChange={(e) => setEditFormData({ ...editFormData, estado: e.target.value })}
+                  >
+                    <option value="pendiente">Pendiente</option>
+                    <option value="completado">Completado</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Departamento</label>
+                  <select
+                    value={editFormData.departamento}
+                    onChange={(e) => setEditFormData({ ...editFormData, departamento: e.target.value, localidad: '' })}
+                  >
+                    <option value="">Sin departamento</option>
+                    {departamentosTodos.map((dep) => (
+                      <option key={dep} value={dep}>{dep}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Localidad</label>
+                  <select
+                    value={editFormData.localidad}
+                    onChange={(e) => setEditFormData({ ...editFormData, localidad: e.target.value })}
+                    disabled={!editFormData.departamento}
+                  >
+                    <option value="">Sin localidad</option>
+                    {editLocalidades.map((loc) => (
+                      <option key={loc} value={loc}>{loc}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Direccion</label>
+                  <input
+                    type="text"
+                    value={editFormData.direccion}
+                    onChange={(e) => setEditFormData({ ...editFormData, direccion: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Envio (UYU)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editFormData.envio}
+                    onChange={(e) => setEditFormData({ ...editFormData, envio: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Descuento (UYU)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editFormData.descuento}
+                    onChange={(e) => setEditFormData({ ...editFormData, descuento: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginTop: '1rem' }}>
+                <label>Notas</label>
+                <textarea
+                  value={editFormData.notas}
+                  onChange={(e) => setEditFormData({ ...editFormData, notas: e.target.value })}
+                  rows={2}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                <button
+                  onClick={() => setVentaEditando(null)}
+                  style={{
+                    padding: '0.6rem 1.2rem',
+                    backgroundColor: '#e5e7eb',
+                    color: '#374151',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontWeight: '600',
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleEditSubmit}
+                  style={{
+                    padding: '0.6rem 1.2rem',
+                    backgroundColor: '#2563eb',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontWeight: '600',
+                  }}
+                >
+                  Guardar Cambios
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
