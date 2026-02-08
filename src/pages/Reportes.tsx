@@ -25,12 +25,34 @@ export default function Reportes() {
   })
   const [ventasRecientes, setVentasRecientes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [empresaId, setEmpresaId] = useState<string | null>(null)
 
   useEffect(() => {
-    loadReportes()
+    const fetchEmpresaId = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data } = await supabase
+          .from('usuarios')
+          .select('empresa_id')
+          .eq('auth_id', user.id)
+          .single()
+        if (data) {
+          setEmpresaId(data.empresa_id)
+        }
+      }
+    }
+    fetchEmpresaId()
   }, [])
 
+  useEffect(() => {
+    if (empresaId) {
+      loadReportes()
+    }
+  }, [empresaId])
+
   const loadReportes = async () => {
+    if (!empresaId) return
+
     try {
       const hoy = new Date()
       const inicioHoy = new Date(hoy.setHours(0, 0, 0, 0)).toISOString()
@@ -41,19 +63,26 @@ export default function Reportes() {
           supabase
             .from('ventas')
             .select('total')
+            .eq('empresa_id', empresaId)
             .gte('fecha_venta', inicioHoy),
           supabase
             .from('ventas')
             .select('total')
+            .eq('empresa_id', empresaId)
             .gte('fecha_venta', inicioMes),
-          supabase.from('ventas').select('total'),
+          supabase
+            .from('ventas')
+            .select('total')
+            .eq('empresa_id', empresaId),
           supabase
             .from('compras')
             .select('total')
+            .eq('empresa_id', empresaId)
             .gte('fecha_compra', inicioMes),
           supabase
             .from('ventas')
             .select('numero_venta, fecha_venta, total, cliente_id')
+            .eq('empresa_id', empresaId)
             .order('fecha_venta', { ascending: false })
             .limit(10),
         ])
@@ -67,7 +96,46 @@ export default function Reportes() {
       const comprasMes =
         comprasMesRes.data?.reduce((sum, c) => sum + (c.total || 0), 0) || 0
 
-      const gananciaTotal = totalVentas - comprasMes
+      const { data: detallesVentas } = await supabase
+        .from('detalles_venta')
+        .select(`
+          cantidad,
+          precio_unitario,
+          producto:productos(
+            precio_costo_m2,
+            precio_compra_uyu,
+            m2_rollo
+          )
+        `)
+        .eq('empresa_id', empresaId)
+
+      const { data: cotizacionData } = await supabase
+        .from('cotizacion_dolar')
+        .select('valor')
+        .eq('empresa_id', empresaId)
+        .maybeSingle()
+
+      const cotizacionDolar = cotizacionData?.valor || 0
+
+      let gananciaTotal = 0
+      if (detallesVentas) {
+        detallesVentas.forEach((detalle: any) => {
+          const producto = detalle.producto
+          if (producto) {
+            const precioVentaM2 = parseFloat(detalle.precio_unitario) || 0
+            const cantidad = parseFloat(detalle.cantidad) || 0
+
+            let precioCostoM2UYU = 0
+            if (producto.precio_costo_m2 && cotizacionDolar > 0) {
+              precioCostoM2UYU = parseFloat(producto.precio_costo_m2) * cotizacionDolar
+            } else if (producto.precio_compra_uyu && producto.m2_rollo) {
+              precioCostoM2UYU = parseFloat(producto.precio_compra_uyu) / parseFloat(producto.m2_rollo)
+            }
+
+            gananciaTotal += (precioVentaM2 - precioCostoM2UYU) * cantidad
+          }
+        })
+      }
 
       setReporte({
         ventasHoy,

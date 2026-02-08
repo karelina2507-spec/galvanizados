@@ -33,12 +33,34 @@ export default function Dashboard() {
     cantidadTotalVendidaMes: 0,
   })
   const [, setLoading] = useState(true)
+  const [empresaId, setEmpresaId] = useState<string | null>(null)
 
   useEffect(() => {
-    loadMetrics()
+    const fetchEmpresaId = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data } = await supabase
+          .from('usuarios')
+          .select('empresa_id')
+          .eq('auth_id', user.id)
+          .single()
+        if (data) {
+          setEmpresaId(data.empresa_id)
+        }
+      }
+    }
+    fetchEmpresaId()
   }, [])
 
+  useEffect(() => {
+    if (empresaId) {
+      loadMetrics()
+    }
+  }, [empresaId])
+
   const loadMetrics = async () => {
+    if (!empresaId) return
+
     try {
       const hoy = new Date()
       const inicioHoy = new Date(hoy.setHours(0, 0, 0, 0)).toISOString()
@@ -46,11 +68,11 @@ export default function Dashboard() {
 
       const [productosRes, ventasHoyRes, ventasMesRes, comprasMesRes, clientesRes] =
         await Promise.all([
-          supabase.from('productos').select('*').eq('activo', true),
-          supabase.from('ventas').select('total').gte('fecha_venta', inicioHoy),
-          supabase.from('ventas').select('id, total').gte('fecha_venta', inicioMes),
-          supabase.from('compras').select('total').gte('fecha_compra', inicioMes),
-          supabase.from('clientes').select('*').eq('activo', true),
+          supabase.from('productos').select('*').eq('activo', true).eq('empresa_id', empresaId),
+          supabase.from('ventas').select('total').gte('fecha_venta', inicioHoy).eq('empresa_id', empresaId),
+          supabase.from('ventas').select('id, total').gte('fecha_venta', inicioMes).eq('empresa_id', empresaId),
+          supabase.from('compras').select('total').gte('fecha_compra', inicioMes).eq('empresa_id', empresaId),
+          supabase.from('clientes').select('*').eq('activo', true).eq('empresa_id', empresaId),
         ])
 
       const totalProductos = productosRes.data?.length || 0
@@ -72,9 +94,10 @@ export default function Dashboard() {
             cantidad,
             precio_unitario,
             venta_id,
-            producto:productos(id, nombre, codigo_producto, precio_compra, precio_compra_uyu, precio_venta)
+            producto:productos(id, nombre, codigo_producto, precio_costo_m2, precio_compra_uyu, m2_rollo)
           `)
           .in('venta_id', ventasMesIds)
+          .eq('empresa_id', empresaId)
 
         detallesVentasMes = data || []
       }
@@ -83,15 +106,29 @@ export default function Dashboard() {
       let cantidadTotalVendidaMes = 0
       const productoVentas: Record<string, { nombre: string; codigo: string; cantidad: number }> = {}
 
+      const { data: cotizacionData } = await supabase
+        .from('cotizacion_dolar')
+        .select('valor')
+        .eq('empresa_id', empresaId)
+        .maybeSingle()
+
+      const cotizacionDolar = cotizacionData?.valor || 0
+
       if (detallesVentasMes) {
         detallesVentasMes.forEach((detalle: any) => {
           const producto = detalle.producto
           if (producto) {
-            const precioCompraUYU = parseFloat(producto.precio_compra_uyu) || parseFloat(producto.precio_compra) || 0
-            const precioVenta = parseFloat(detalle.precio_unitario) || parseFloat(producto.precio_venta) || 0
+            const precioVentaM2 = parseFloat(detalle.precio_unitario) || 0
             const cantidad = parseFloat(detalle.cantidad) || 0
 
-            gananciasMes += (precioVenta - precioCompraUYU) * cantidad
+            let precioCostoM2UYU = 0
+            if (producto.precio_costo_m2 && cotizacionDolar > 0) {
+              precioCostoM2UYU = parseFloat(producto.precio_costo_m2) * cotizacionDolar
+            } else if (producto.precio_compra_uyu && producto.m2_rollo) {
+              precioCostoM2UYU = parseFloat(producto.precio_compra_uyu) / parseFloat(producto.m2_rollo)
+            }
+
+            gananciasMes += (precioVentaM2 - precioCostoM2UYU) * cantidad
             cantidadTotalVendidaMes += cantidad
 
             const productoKey = producto.id
