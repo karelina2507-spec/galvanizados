@@ -177,18 +177,18 @@ export default function Productos() {
     const m2Total = altura * largo
 
     if (cotizacionDolar) {
-      if (field === 'precio_costo_m2' && numValue > 0 && m2Total > 0) {
-        newFormData.precio_compra = (numValue * m2Total).toFixed(2)
-        newFormData.precio_compra_uyu = (numValue * m2Total * cotizacionDolar).toFixed(2)
+      if (field === 'precio_costo_m2' && numValue > 0 && altura > 0) {
+        newFormData.precio_compra = (numValue * altura * 25).toFixed(2)
+        newFormData.precio_compra_uyu = (numValue * altura * 25 * cotizacionDolar).toFixed(2)
       } else if (field === 'precio_compra' && numValue > 0) {
         newFormData.precio_compra_uyu = (numValue * cotizacionDolar).toFixed(2)
-        if (m2Total > 0) {
-          newFormData.precio_costo_m2 = (numValue / m2Total).toFixed(2)
+        if (altura > 0) {
+          newFormData.precio_costo_m2 = (numValue / (altura * 25)).toFixed(2)
         }
       } else if (field === 'precio_compra_uyu' && numValue > 0) {
         newFormData.precio_compra = (numValue / cotizacionDolar).toFixed(2)
-        if (m2Total > 0) {
-          newFormData.precio_costo_m2 = (numValue / cotizacionDolar / m2Total).toFixed(2)
+        if (altura > 0) {
+          newFormData.precio_costo_m2 = (numValue / cotizacionDolar / (altura * 25)).toFixed(2)
         }
       } else if (field === 'precio_venta_m2' && numValue > 0 && m2Total > 0) {
         newFormData.precio_venta = (numValue * m2Total).toFixed(2)
@@ -216,16 +216,16 @@ export default function Productos() {
     const largo = parseFloat(field === 'largo_m' ? value : formData.largo_m) || 0
     const m2Total = altura * largo
 
-    if (m2Total > 0 && cotizacionDolar) {
+    if (cotizacionDolar) {
       const precioCostoM2 = parseFloat(formData.precio_costo_m2) || 0
       const precioVentaM2 = parseFloat(formData.precio_venta_m2) || 0
 
-      if (precioCostoM2 > 0) {
-        newFormData.precio_compra = (precioCostoM2 * m2Total).toFixed(2)
-        newFormData.precio_compra_uyu = (precioCostoM2 * m2Total * cotizacionDolar).toFixed(2)
+      if (precioCostoM2 > 0 && altura > 0) {
+        newFormData.precio_compra = (precioCostoM2 * altura * 25).toFixed(2)
+        newFormData.precio_compra_uyu = (precioCostoM2 * altura * 25 * cotizacionDolar).toFixed(2)
       }
 
-      if (precioVentaM2 > 0) {
+      if (precioVentaM2 > 0 && m2Total > 0) {
         newFormData.precio_venta = (precioVentaM2 * m2Total).toFixed(2)
         newFormData.precio_venta_usd = (precioVentaM2 * m2Total / cotizacionDolar).toFixed(2)
       }
@@ -538,11 +538,11 @@ export default function Productos() {
         bValue = b.separacion_cm || 0
         break
       case 'precio_costo':
-        aValue = (a.altura_m && a.largo_m && a.precio_costo_m2)
-          ? a.altura_m * a.largo_m * a.precio_costo_m2
+        aValue = (a.altura_m && a.precio_costo_m2)
+          ? a.altura_m * 25 * a.precio_costo_m2
           : 0
-        bValue = (b.altura_m && b.largo_m && b.precio_costo_m2)
-          ? b.altura_m * b.largo_m * b.precio_costo_m2
+        bValue = (b.altura_m && b.precio_costo_m2)
+          ? b.altura_m * 25 * b.precio_costo_m2
           : 0
         break
       case 'precio_costo_m2':
@@ -1102,12 +1102,12 @@ export default function Productos() {
                     </td>
                     <td style={{ padding: '8px', textAlign: 'right' }}>
                       {isEditingInline ? (
-                        inlineFormData.altura_m && inlineFormData.largo_m && inlineFormData.precio_costo_m2
-                          ? `US$${(parseFloat(inlineFormData.altura_m) * parseFloat(inlineFormData.largo_m) * parseFloat(inlineFormData.precio_costo_m2)).toFixed(2)}`
+                        inlineFormData.altura_m && inlineFormData.precio_costo_m2
+                          ? `US$${(parseFloat(inlineFormData.altura_m) * 25 * parseFloat(inlineFormData.precio_costo_m2)).toFixed(2)}`
                           : '-'
                       ) : (
-                        producto.altura_m && producto.largo_m && producto.precio_costo_m2
-                          ? `US$${(producto.altura_m * producto.largo_m * producto.precio_costo_m2).toFixed(2)}`
+                        producto.altura_m && producto.precio_costo_m2
+                          ? `US$${(producto.altura_m * 25 * producto.precio_costo_m2).toFixed(2)}`
                           : '-'
                       )}
                     </td>
