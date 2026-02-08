@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
 import { Plus, Trash2, AlertCircle, CheckCircle, UserPlus, X, FileText } from 'lucide-react'
-import jsPDF from 'jspdf'
 import '../styles/pages.css'
 
 interface DetallePresupuesto {
@@ -319,108 +318,7 @@ export default function NuevoPresupuesto() {
 
       if (detalleError) throw detalleError
 
-      const clienteSeleccionado = clientes.find((c) => c.id === formData.cliente_id)
-
-      const doc = new jsPDF()
-
-      doc.setFontSize(20)
-      doc.text('PRESUPUESTO', 105, 20, { align: 'center' })
-
-      doc.setFontSize(10)
-      doc.text(`Número: ${numeroPresupuesto}`, 20, 35)
-      doc.text(`Fecha: ${new Date(formData.fecha_presupuesto).toLocaleDateString('es-UY')}`, 20, 42)
-
-      if (clienteSeleccionado) {
-        doc.text('Cliente:', 20, 55)
-        doc.setFontSize(12)
-        doc.text(clienteSeleccionado.nombre, 20, 62)
-        doc.setFontSize(10)
-        if (clienteSeleccionado.telefono) {
-          doc.text(`Tel: ${clienteSeleccionado.telefono}`, 20, 69)
-        }
-        if (clienteSeleccionado.direccion) {
-          doc.text(`Dir: ${clienteSeleccionado.direccion}`, 20, 76)
-        }
-      }
-
-      let yPos = clienteSeleccionado ? 90 : 60
-
-      doc.setFillColor(59, 130, 246)
-      doc.rect(20, yPos, 170, 8, 'F')
-      doc.setTextColor(255, 255, 255)
-      doc.setFontSize(10)
-      doc.text('Producto', 22, yPos + 5)
-      doc.text('Cant.', 120, yPos + 5)
-      doc.text('Precio Unit.', 140, yPos + 5)
-      doc.text('Subtotal', 170, yPos + 5)
-      doc.setTextColor(0, 0, 0)
-
-      yPos += 12
-
-      for (const detalle of detalles) {
-        const producto = productos.find((p) => p.id === detalle.producto_id)
-        if (!producto) continue
-
-        let nombreProducto = `${producto.codigo_producto} - ${producto.nombre}`
-        if (producto.altura_m || producto.largo_m || producto.separacion_cm) {
-          nombreProducto += ' ('
-          if (producto.altura_m) nombreProducto += `${producto.altura_m}m`
-          if (producto.largo_m) nombreProducto += ` x ${producto.largo_m}m`
-          if (producto.separacion_cm) nombreProducto += ` - ${producto.separacion_cm}cm`
-          nombreProducto += ')'
-        }
-
-        const maxWidth = 95
-        const lines = doc.splitTextToSize(nombreProducto, maxWidth)
-
-        if (yPos + (lines.length * 5) > 270) {
-          doc.addPage()
-          yPos = 20
-        }
-
-        doc.setFontSize(9)
-        doc.text(lines, 22, yPos)
-        doc.text(detalle.cantidad.toString(), 120, yPos)
-        doc.text(`$${detalle.precio_unitario.toFixed(2)}`, 140, yPos)
-        doc.text(`$${detalle.subtotal_item.toFixed(2)}`, 170, yPos)
-
-        yPos += lines.length * 5 + 2
-      }
-
-      yPos += 5
-      doc.line(20, yPos, 190, yPos)
-
-      yPos += 8
-      doc.setFontSize(11)
-      doc.text('Subtotal:', 140, yPos)
-      doc.text(`$${subtotal.toFixed(2)}`, 170, yPos)
-
-      if (parseFloat(formData.descuento) > 0) {
-        yPos += 7
-        doc.text('Descuento:', 140, yPos)
-        doc.text(`-$${parseFloat(formData.descuento).toFixed(2)}`, 170, yPos)
-      }
-
-      yPos += 7
-      doc.setFontSize(14)
-      doc.setFont('helvetica', 'bold')
-      doc.text('TOTAL:', 140, yPos)
-      doc.text(`$${total.toFixed(2)}`, 170, yPos)
-
-      if (formData.notas) {
-        yPos += 15
-        doc.setFontSize(10)
-        doc.setFont('helvetica', 'bold')
-        doc.text('Notas:', 20, yPos)
-        doc.setFont('helvetica', 'normal')
-        yPos += 5
-        const notasLines = doc.splitTextToSize(formData.notas, 170)
-        doc.text(notasLines, 20, yPos)
-      }
-
-      doc.save(`Presupuesto-${numeroPresupuesto}.pdf`)
-
-      setSuccess(`Presupuesto generado exitosamente: ${numeroPresupuesto}`)
+      setSuccess(`Presupuesto guardado exitosamente: ${numeroPresupuesto}`)
 
       setTimeout(() => {
         navigate('/presupuestos')
