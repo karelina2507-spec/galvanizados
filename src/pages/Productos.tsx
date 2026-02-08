@@ -70,6 +70,8 @@ export default function Productos() {
     precio_venta: '',
     precio_compra_uyu: '',
     precio_venta_usd: '',
+    precio_costo_m2: '',
+    precio_venta_m2: '',
     altura_m: '',
     largo_m: '',
     separacion_cm: '',
@@ -170,15 +172,62 @@ export default function Productos() {
     const numValue = value === '' ? 0 : parseFloat(value)
     const newFormData = { ...formData, [field]: value }
 
+    const altura = parseFloat(newFormData.altura_m) || 0
+    const largo = parseFloat(newFormData.largo_m) || 0
+    const m2Total = altura * largo
+
     if (cotizacionDolar) {
-      if (field === 'precio_compra' && numValue > 0) {
+      if (field === 'precio_costo_m2' && numValue > 0 && m2Total > 0) {
+        newFormData.precio_compra = (numValue * m2Total).toFixed(2)
+        newFormData.precio_compra_uyu = (numValue * m2Total * cotizacionDolar).toFixed(2)
+      } else if (field === 'precio_compra' && numValue > 0) {
         newFormData.precio_compra_uyu = (numValue * cotizacionDolar).toFixed(2)
+        if (m2Total > 0) {
+          newFormData.precio_costo_m2 = (numValue / m2Total).toFixed(2)
+        }
       } else if (field === 'precio_compra_uyu' && numValue > 0) {
         newFormData.precio_compra = (numValue / cotizacionDolar).toFixed(2)
+        if (m2Total > 0) {
+          newFormData.precio_costo_m2 = (numValue / cotizacionDolar / m2Total).toFixed(2)
+        }
+      } else if (field === 'precio_venta_m2' && numValue > 0 && m2Total > 0) {
+        newFormData.precio_venta = (numValue * m2Total).toFixed(2)
+        newFormData.precio_venta_usd = (numValue * m2Total / cotizacionDolar).toFixed(2)
       } else if (field === 'precio_venta' && numValue > 0) {
         newFormData.precio_venta_usd = (numValue / cotizacionDolar).toFixed(2)
+        if (m2Total > 0) {
+          newFormData.precio_venta_m2 = (numValue / m2Total).toFixed(2)
+        }
       } else if (field === 'precio_venta_usd' && numValue > 0) {
         newFormData.precio_venta = (numValue * cotizacionDolar).toFixed(2)
+        if (m2Total > 0) {
+          newFormData.precio_venta_m2 = (numValue * cotizacionDolar / m2Total).toFixed(2)
+        }
+      }
+    }
+
+    setFormData(newFormData)
+  }
+
+  const handleDimensionChange = (field: string, value: string) => {
+    const newFormData = { ...formData, [field]: value }
+
+    const altura = parseFloat(field === 'altura_m' ? value : formData.altura_m) || 0
+    const largo = parseFloat(field === 'largo_m' ? value : formData.largo_m) || 0
+    const m2Total = altura * largo
+
+    if (m2Total > 0 && cotizacionDolar) {
+      const precioCostoM2 = parseFloat(formData.precio_costo_m2) || 0
+      const precioVentaM2 = parseFloat(formData.precio_venta_m2) || 0
+
+      if (precioCostoM2 > 0) {
+        newFormData.precio_compra = (precioCostoM2 * m2Total).toFixed(2)
+        newFormData.precio_compra_uyu = (precioCostoM2 * m2Total * cotizacionDolar).toFixed(2)
+      }
+
+      if (precioVentaM2 > 0) {
+        newFormData.precio_venta = (precioVentaM2 * m2Total).toFixed(2)
+        newFormData.precio_venta_usd = (precioVentaM2 * m2Total / cotizacionDolar).toFixed(2)
       }
     }
 
@@ -265,6 +314,8 @@ export default function Productos() {
       precio_venta: producto.precio_venta.toString(),
       precio_compra_uyu: producto.precio_compra_uyu?.toString() || '',
       precio_venta_usd: producto.precio_venta_usd?.toString() || '',
+      precio_costo_m2: producto.precio_costo_m2?.toString() || '',
+      precio_venta_m2: producto.precio_venta_m2?.toString() || '',
       altura_m: producto.altura_m?.toString() || '',
       largo_m: producto.largo_m?.toString() || '',
       separacion_cm: producto.separacion_cm?.toString() || '',
@@ -287,6 +338,8 @@ export default function Productos() {
         precio_venta: parseFloat(formData.precio_venta) || 0,
         precio_compra_uyu: formData.precio_compra_uyu ? parseFloat(formData.precio_compra_uyu) : null,
         precio_venta_usd: formData.precio_venta_usd ? parseFloat(formData.precio_venta_usd) : null,
+        precio_costo_m2: formData.precio_costo_m2 ? parseFloat(formData.precio_costo_m2) : null,
+        precio_venta_m2: formData.precio_venta_m2 ? parseFloat(formData.precio_venta_m2) : null,
         altura_m: formData.altura_m ? parseFloat(formData.altura_m) : null,
         largo_m: formData.largo_m ? parseFloat(formData.largo_m) : null,
         separacion_cm: formData.separacion_cm ? parseFloat(formData.separacion_cm) : null,
@@ -345,6 +398,8 @@ export default function Productos() {
       precio_venta: '',
       precio_compra_uyu: '',
       precio_venta_usd: '',
+      precio_costo_m2: '',
+      precio_venta_m2: '',
       altura_m: '',
       largo_m: '',
       separacion_cm: '',
@@ -1458,17 +1513,17 @@ export default function Productos() {
                         Configure la cotización del dólar para cálculos automáticos
                       </div>
                     )}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
                       <div>
                         <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                          Precio Compra (USD) *
+                          Precio Costo m² (USD) *
                         </label>
                         <input
                           type="number"
                           step="0.01"
                           required
-                          value={formData.precio_compra}
-                          onChange={(e) => handlePrecioChange('precio_compra', e.target.value)}
+                          value={formData.precio_costo_m2}
+                          onChange={(e) => handlePrecioChange('precio_costo_m2', e.target.value)}
                           style={{
                             width: '100%',
                             padding: '10px',
@@ -1481,7 +1536,28 @@ export default function Productos() {
 
                       <div>
                         <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                          Precio Compra (UYU)
+                          Precio Rollo Completo (USD)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={formData.precio_compra}
+                          onChange={(e) => handlePrecioChange('precio_compra', e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '10px',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            background: '#f9fafb'
+                          }}
+                          readOnly
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                          Precio Rollo Completo (UYU)
                         </label>
                         <input
                           type="number"
@@ -1494,22 +1570,23 @@ export default function Productos() {
                             border: '1px solid #e5e7eb',
                             borderRadius: '8px',
                             fontSize: '14px',
-                            background: cotizacionDolar ? '#f9fafb' : 'white'
+                            background: '#f9fafb'
                           }}
+                          readOnly
                           disabled={!cotizacionDolar}
                         />
                       </div>
 
                       <div>
                         <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                          Precio Venta (UYU) *
+                          Precio Venta m² (UYU) *
                         </label>
                         <input
                           type="number"
                           step="0.01"
                           required
-                          value={formData.precio_venta}
-                          onChange={(e) => handlePrecioChange('precio_venta', e.target.value)}
+                          value={formData.precio_venta_m2}
+                          onChange={(e) => handlePrecioChange('precio_venta_m2', e.target.value)}
                           style={{
                             width: '100%',
                             padding: '10px',
@@ -1522,7 +1599,28 @@ export default function Productos() {
 
                       <div>
                         <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                          Precio Venta (USD)
+                          Precio Venta Rollo (UYU)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={formData.precio_venta}
+                          onChange={(e) => handlePrecioChange('precio_venta', e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '10px',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            background: '#f9fafb'
+                          }}
+                          readOnly
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                          Precio Venta Rollo (USD)
                         </label>
                         <input
                           type="number"
@@ -1535,8 +1633,9 @@ export default function Productos() {
                             border: '1px solid #e5e7eb',
                             borderRadius: '8px',
                             fontSize: '14px',
-                            background: cotizacionDolar ? '#f9fafb' : 'white'
+                            background: '#f9fafb'
                           }}
+                          readOnly
                           disabled={!cotizacionDolar}
                         />
                       </div>
@@ -1556,7 +1655,7 @@ export default function Productos() {
                           type="number"
                           step="0.01"
                           value={formData.altura_m}
-                          onChange={(e) => setFormData({ ...formData, altura_m: e.target.value })}
+                          onChange={(e) => handleDimensionChange('altura_m', e.target.value)}
                           style={{
                             width: '100%',
                             padding: '10px',
@@ -1575,7 +1674,7 @@ export default function Productos() {
                           type="number"
                           step="0.01"
                           value={formData.largo_m}
-                          onChange={(e) => setFormData({ ...formData, largo_m: e.target.value })}
+                          onChange={(e) => handleDimensionChange('largo_m', e.target.value)}
                           style={{
                             width: '100%',
                             padding: '10px',
