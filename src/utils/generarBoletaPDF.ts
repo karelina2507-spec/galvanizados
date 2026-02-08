@@ -30,7 +30,7 @@ interface VentaCompleta {
 export const generarBoletaPDF = (
   venta: VentaCompleta,
   detalles: DetalleVenta[]
-): void => {
+): Blob => {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -184,6 +184,5 @@ export const generarBoletaPDF = (
   doc.setFont('helvetica', 'normal')
   doc.text('Precios por pago contado', margin, yPos)
 
-  const nombreArchivo = `Boleta_${venta.numero_venta.replace(/\//g, '-')}.pdf`
-  doc.save(nombreArchivo)
+  return doc.output('blob')
 }

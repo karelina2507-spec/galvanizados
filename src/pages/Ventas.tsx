@@ -518,7 +518,25 @@ export default function Ventas() {
 
       if (error) throw error
 
-      generarBoletaPDF(ventaCompleta, detalles || [])
+      const pdfBlob = generarBoletaPDF(ventaCompleta, detalles || [])
+
+      const nombreArchivo = `${venta.numero_venta.replace(/\//g, '-')}.pdf`
+      const rutaArchivo = `boletas/${nombreArchivo}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('boletas')
+        .upload(rutaArchivo, pdfBlob, {
+          contentType: 'application/pdf',
+          upsert: true
+        })
+
+      if (uploadError) throw uploadError
+
+      const { data: urlData } = supabase.storage
+        .from('boletas')
+        .getPublicUrl(rutaArchivo)
+
+      const urlBoleta = urlData.publicUrl
 
       let mensaje = `¡Hola! 👋\n\n`
       mensaje += `Te envío la boleta de tu compra:\n\n`
@@ -532,7 +550,7 @@ export default function Ventas() {
         mensaje += `\n\n`
       }
 
-      mensaje += `Por favor, adjunta la boleta en PDF que se descargó.\n\n`
+      mensaje += `📄 Ver boleta: ${urlBoleta}\n\n`
       mensaje += `¡Gracias por tu compra! 🙏`
 
       const mensajeCodificado = encodeURIComponent(mensaje)
@@ -545,13 +563,11 @@ export default function Ventas() {
         urlWhatsApp = `https://wa.me/?text=${mensajeCodificado}`
       }
 
-      setTimeout(() => {
-        window.open(urlWhatsApp, '_blank')
-      }, 500)
+      window.open(urlWhatsApp, '_blank')
 
     } catch (err: any) {
       console.error('Error al compartir por WhatsApp:', err.message)
-      setError('Error al preparar el mensaje de WhatsApp')
+      setError('Error al preparar el mensaje de WhatsApp: ' + err.message)
     }
   }
 
