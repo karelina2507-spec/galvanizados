@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
 import '../styles/dashboard.css'
-import { TrendingUp, Package, ShoppingCart, DollarSign, LogOut, Users, Award, AlertCircle } from 'lucide-react'
+import { TrendingUp, Package, ShoppingCart, DollarSign, LogOut, Users, Award, AlertCircle, Trash2 } from 'lucide-react'
 
 interface Metrics {
   totalProductos: number
@@ -42,6 +42,7 @@ export default function Dashboard() {
   })
   const [, setLoading] = useState(true)
   const [empresaId, setEmpresaId] = useState<string | null>(null)
+  const [reseteando, setReseteando] = useState(false)
 
   useEffect(() => {
     const fetchEmpresaId = async () => {
@@ -206,6 +207,56 @@ export default function Dashboard() {
   const handleLogout = async () => {
     await signOut()
     navigate('/login')
+  }
+
+  const handleResetearDatos = async () => {
+    const confirmacion1 = window.confirm(
+      '⚠️ ADVERTENCIA: Esto eliminará TODAS las ventas, presupuestos, pedidos, compras, promociones, clientes y gastos.\n\n¿Estás seguro de que quieres continuar?'
+    )
+
+    if (!confirmacion1) return
+
+    const confirmacion2 = window.confirm(
+      '⚠️ ÚLTIMA ADVERTENCIA: Esta acción NO se puede deshacer.\n\nTodos los datos de prueba serán eliminados permanentemente.\n\n¿Confirmas que deseas eliminar todos los datos?'
+    )
+
+    if (!confirmacion2) return
+
+    setReseteando(true)
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session || !empresaId) {
+        alert('Error: No se pudo obtener la sesión o empresa_id')
+        return
+      }
+
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resetear-datos-prueba`
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ empresa_id: empresaId })
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        alert('✅ Datos eliminados correctamente. La página se recargará.')
+        window.location.reload()
+      } else {
+        alert(`Error al eliminar datos: ${result.error || 'Error desconocido'}`)
+      }
+    } catch (error) {
+      console.error('Error al resetear datos:', error)
+      alert('Error al resetear los datos. Verifica la consola.')
+    } finally {
+      setReseteando(false)
+    }
   }
 
   return (
@@ -449,6 +500,19 @@ export default function Dashboard() {
             >
               <TrendingUp size={20} />
               Ver Reportes
+            </button>
+            <button
+              onClick={handleResetearDatos}
+              disabled={reseteando}
+              className="action-btn"
+              style={{
+                backgroundColor: '#fee2e2',
+                color: '#dc2626',
+                border: '2px solid #fca5a5',
+              }}
+            >
+              <Trash2 size={20} />
+              {reseteando ? 'Reseteando...' : 'Resetear Datos de Prueba'}
             </button>
           </div>
         </div>
