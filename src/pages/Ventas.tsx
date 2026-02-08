@@ -558,6 +558,7 @@ export default function Ventas() {
       }
 
       mensaje += `¡Gracias por tu compra! 🙏\n\n`
+      mensaje += `Ver boleta:\n`
       mensaje += urlBoleta
 
       const mensajeCodificado = encodeURIComponent(mensaje)
