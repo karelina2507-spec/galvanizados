@@ -16,6 +16,10 @@ interface Metrics {
   productoMasVendido: { nombre: string; cantidad: number; codigo: string } | null
   productoMenosVendido: { nombre: string; cantidad: number; codigo: string } | null
   cantidadTotalVendidaMes: number
+  costosCombustibleMes: number
+  montoEnviosMes: number
+  gananciasVentasMes: number
+  gananciaFinalMes: number
 }
 
 export default function Dashboard() {
@@ -31,6 +35,10 @@ export default function Dashboard() {
     productoMasVendido: null,
     productoMenosVendido: null,
     cantidadTotalVendidaMes: 0,
+    costosCombustibleMes: 0,
+    montoEnviosMes: 0,
+    gananciasVentasMes: 0,
+    gananciaFinalMes: 0,
   })
   const [, setLoading] = useState(true)
   const [empresaId, setEmpresaId] = useState<string | null>(null)
@@ -66,13 +74,14 @@ export default function Dashboard() {
       const inicioHoy = new Date(hoy.setHours(0, 0, 0, 0)).toISOString()
       const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString()
 
-      const [productosRes, ventasHoyRes, ventasMesRes, comprasMesRes, clientesRes] =
+      const [productosRes, ventasHoyRes, ventasMesRes, comprasMesRes, clientesRes, empresaConfigRes] =
         await Promise.all([
           supabase.from('productos').select('*').eq('activo', true).eq('empresa_id', empresaId),
           supabase.from('ventas').select('total').gte('fecha_venta', inicioHoy).eq('empresa_id', empresaId),
-          supabase.from('ventas').select('id, total').gte('fecha_venta', inicioMes).eq('empresa_id', empresaId),
+          supabase.from('ventas').select('id, total, distancia_km, envio').gte('fecha_venta', inicioMes).eq('empresa_id', empresaId),
           supabase.from('compras').select('total').gte('fecha_compra', inicioMes).eq('empresa_id', empresaId),
           supabase.from('clientes').select('*').eq('activo', true).eq('empresa_id', empresaId),
+          supabase.from('empresas').select('precio_nafta_litro, consumo_vehiculo_km_litro').eq('id', empresaId).single(),
         ])
 
       const totalProductos = productosRes.data?.length || 0
@@ -84,6 +93,26 @@ export default function Dashboard() {
         comprasMesRes.data?.reduce((sum, c) => sum + (c.total || 0), 0) || 0
       const totalClientes = clientesRes.data?.length || 0
 
+      const precioNafta = empresaConfigRes.data?.precio_nafta_litro || 73.50
+      const consumoVehiculo = empresaConfigRes.data?.consumo_vehiculo_km_litro || 10
+
+      let costosCombustibleMes = 0
+      let montoEnviosMes = 0
+
+      if (ventasMesRes.data) {
+        ventasMesRes.data.forEach((venta: any) => {
+          const distancia = parseFloat(venta.distancia_km) || 0
+          const envio = parseFloat(venta.envio) || 0
+
+          if (distancia > 0) {
+            const litrosUsados = distancia / consumoVehiculo
+            costosCombustibleMes += litrosUsados * precioNafta
+          }
+
+          montoEnviosMes += envio
+        })
+      }
+
       const ventasMesIds = ventasMesRes.data?.map(v => v.id) || []
 
       let detallesVentasMes: any[] = []
@@ -94,14 +123,14 @@ export default function Dashboard() {
             cantidad,
             precio_unitario,
             venta_id,
-            producto:productos(id, nombre, codigo_producto, precio_costo_m2, precio_compra_uyu, m2_rollo)
+            producto:productos(id, nombre, codigo_producto, precio_costo_m2, precio_compra_uyu, precio_venta_m2, m2_rollo)
           `)
           .in('venta_id', ventasMesIds)
 
         detallesVentasMes = data || []
       }
 
-      let gananciasMes = 0
+      let gananciasVentasMes = 0
       let cantidadTotalVendidaMes = 0
       const productoVentas: Record<string, { nombre: string; codigo: string; cantidad: number }> = {}
 
@@ -117,18 +146,21 @@ export default function Dashboard() {
         detallesVentasMes.forEach((detalle: any) => {
           const producto = detalle.producto
           if (producto) {
-            const precioVentaUnitario = parseFloat(detalle.precio_unitario) || 0
-            const cantidad = parseFloat(detalle.cantidad) || 0
+            const cantidadRollos = parseFloat(detalle.cantidad) || 0
+            const m2Rollo = parseFloat(producto.m2_rollo) || 1
+            const cantidadM2 = cantidadRollos * m2Rollo
 
-            let precioCostoUnitario = 0
-            if (producto.precio_compra_uyu) {
-              precioCostoUnitario = parseFloat(producto.precio_compra_uyu)
-            } else if (producto.precio_costo_m2 && cotizacionDolar > 0 && producto.m2_rollo) {
-              precioCostoUnitario = parseFloat(producto.precio_costo_m2) * cotizacionDolar * parseFloat(producto.m2_rollo)
+            const precioVentaM2 = parseFloat(producto.precio_venta_m2) || 0
+
+            let precioCostoM2UYU = 0
+            if (producto.precio_costo_m2 && cotizacionDolar > 0) {
+              precioCostoM2UYU = parseFloat(producto.precio_costo_m2) * cotizacionDolar
+            } else if (producto.precio_compra_uyu && producto.m2_rollo) {
+              precioCostoM2UYU = parseFloat(producto.precio_compra_uyu) / parseFloat(producto.m2_rollo)
             }
 
-            gananciasMes += (precioVentaUnitario - precioCostoUnitario) * cantidad
-            cantidadTotalVendidaMes += cantidad
+            gananciasVentasMes += (precioVentaM2 - precioCostoM2UYU) * cantidadM2
+            cantidadTotalVendidaMes += cantidadM2
 
             const productoKey = producto.id
             if (!productoVentas[productoKey]) {
@@ -138,10 +170,12 @@ export default function Dashboard() {
                 cantidad: 0
               }
             }
-            productoVentas[productoKey].cantidad += cantidad
+            productoVentas[productoKey].cantidad += cantidadM2
           }
         })
       }
+
+      const gananciaFinalMes = gananciasVentasMes + montoEnviosMes - costosCombustibleMes
 
       const productosOrdenados = Object.values(productoVentas).sort((a, b) => b.cantidad - a.cantidad)
       const productoMasVendido = productosOrdenados.length > 0 ? productosOrdenados[0] : null
@@ -151,12 +185,16 @@ export default function Dashboard() {
         totalProductos,
         ventasHoy,
         ventasMes,
-        gananciasMes,
+        gananciasMes: gananciasVentasMes,
         comprasMes,
         totalClientes,
         productoMasVendido,
         productoMenosVendido,
         cantidadTotalVendidaMes,
+        costosCombustibleMes,
+        montoEnviosMes,
+        gananciasVentasMes,
+        gananciaFinalMes,
       })
     } catch (error) {
       console.error('Error loading metrics:', error)
@@ -329,7 +367,47 @@ export default function Dashboard() {
             </div>
             <div className="metric-content">
               <p className="metric-label">Unidades Vendidas (Mes)</p>
-              <p className="metric-value">{metrics.cantidadTotalVendidaMes}</p>
+              <p className="metric-value">{metrics.cantidadTotalVendidaMes.toFixed(2)}</p>
+            </div>
+          </div>
+
+          <div className="metric-card">
+            <div className="metric-icon" style={{ backgroundColor: '#fee2e2' }}>
+              <TrendingUp size={24} color="#dc2626" />
+            </div>
+            <div className="metric-content">
+              <p className="metric-label">Costo Combustible (Mes)</p>
+              <p className="metric-value">$ {metrics.costosCombustibleMes.toFixed(2)}</p>
+            </div>
+          </div>
+
+          <div className="metric-card">
+            <div className="metric-icon" style={{ backgroundColor: '#d1fae5' }}>
+              <DollarSign size={24} color="#059669" />
+            </div>
+            <div className="metric-content">
+              <p className="metric-label">Monto Envíos (Mes)</p>
+              <p className="metric-value">$ {metrics.montoEnviosMes.toFixed(2)}</p>
+            </div>
+          </div>
+
+          <div className="metric-card">
+            <div className="metric-icon" style={{ backgroundColor: '#dbeafe' }}>
+              <TrendingUp size={24} color="#0369a1" />
+            </div>
+            <div className="metric-content">
+              <p className="metric-label">Ganancia Ventas (Mes)</p>
+              <p className="metric-value">$ {metrics.gananciasVentasMes.toFixed(2)}</p>
+            </div>
+          </div>
+
+          <div className="metric-card">
+            <div className="metric-icon" style={{ backgroundColor: '#dcfce7' }}>
+              <DollarSign size={24} color="#16a34a" />
+            </div>
+            <div className="metric-content">
+              <p className="metric-label">Ganancia Final (Mes)</p>
+              <p className="metric-value">$ {metrics.gananciaFinalMes.toFixed(2)}</p>
             </div>
           </div>
         </div>
