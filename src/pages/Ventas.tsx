@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
 import MapaPicker, { MapaPickerRef } from '../components/MapaPicker'
-import { Plus, Trash2, AlertCircle, X, MapPin, Search, ChevronDown, ChevronRight, MessageCircle } from 'lucide-react'
+import { Plus, Trash2, AlertCircle, X, MapPin, Search, ChevronDown, ChevronRight, MessageCircle, Download } from 'lucide-react'
 import { generarBoletaPDF } from '../utils/generarBoletaPDF'
 import '../styles/pages.css'
 
@@ -575,6 +575,40 @@ export default function Ventas() {
     } catch (err: any) {
       console.error('Error al compartir por WhatsApp:', err.message)
       setError('Error al preparar el mensaje de WhatsApp: ' + err.message)
+    }
+  }
+
+  const descargarBoleta = async (venta: Venta) => {
+    try {
+      const { data: ventaCompleta, error: ventaError } = await supabase
+        .from('ventas')
+        .select('*, cliente:clientes(nombre, telefono)')
+        .eq('id', venta.id)
+        .single()
+
+      if (ventaError) throw ventaError
+
+      const { data: detalles, error } = await supabase
+        .from('detalle_ventas')
+        .select('cantidad, precio_unitario, subtotal_item, producto:productos(codigo_producto, nombre, altura_m, largo_m, separacion_cm)')
+        .eq('venta_id', venta.id)
+
+      if (error) throw error
+
+      const pdfBlob = generarBoletaPDF(ventaCompleta, detalles || [])
+
+      const url = window.URL.createObjectURL(pdfBlob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `${venta.numero_venta.replace(/\//g, '-')}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+
+    } catch (err: any) {
+      console.error('Error al descargar boleta:', err.message)
+      setError('Error al descargar la boleta: ' + err.message)
     }
   }
 
@@ -1387,26 +1421,48 @@ export default function Ventas() {
                           ${venta.total?.toFixed(2) || '0.00'}
                         </td>
                         <td style={{ textAlign: 'center' }}>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              compartirVentaPorWhatsApp(venta)
-                            }}
-                            style={{
-                              padding: '0.5rem',
-                              backgroundColor: '#dcfce7',
-                              color: '#16a34a',
-                              border: 'none',
-                              borderRadius: '6px',
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                            title="Compartir por WhatsApp"
-                          >
-                            <MessageCircle size={16} />
-                          </button>
+                          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                compartirVentaPorWhatsApp(venta)
+                              }}
+                              style={{
+                                padding: '0.5rem',
+                                backgroundColor: '#dcfce7',
+                                color: '#16a34a',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                              title="Compartir por WhatsApp"
+                            >
+                              <MessageCircle size={16} />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                descargarBoleta(venta)
+                              }}
+                              style={{
+                                padding: '0.5rem',
+                                backgroundColor: '#e0e7ff',
+                                color: '#4f46e5',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                              title="Descargar Boleta PDF"
+                            >
+                              <Download size={16} />
+                            </button>
+                          </div>
                         </td>
                         <td
                           onClick={() => toggleVentaExpandida(venta.id)}
