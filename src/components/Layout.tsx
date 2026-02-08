@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from 'react'
+import React, { type ReactNode, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Package, ShoppingCart, BarChart3, Users, Truck, DollarSign, Menu, X, Navigation, Tag, FileText, Receipt } from 'lucide-react'
 import '../styles/layout.css'
