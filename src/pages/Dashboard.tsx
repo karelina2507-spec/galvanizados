@@ -93,7 +93,7 @@ export default function Dashboard() {
         comprasMesRes.data?.reduce((sum, c) => sum + (c.total || 0), 0) || 0
       const totalClientes = clientesRes.data?.length || 0
 
-      const precioNafta = empresaConfigRes.data?.precio_nafta_litro || 73.50
+      const precioNafta = empresaConfigRes.data?.precio_nafta_litro || 80.30
       const consumoVehiculo = empresaConfigRes.data?.consumo_vehiculo_km_litro || 10
 
       let costosCombustibleMes = 0

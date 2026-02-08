@@ -34,7 +34,7 @@ export default function Reportes() {
   const [ventasRecientes, setVentasRecientes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [empresaId, setEmpresaId] = useState<string | null>(null)
-  const [precioNafta, setPrecioNafta] = useState(73.50)
+  const [precioNafta, setPrecioNafta] = useState(80.30)
   const [consumoVehiculo, setConsumoVehiculo] = useState(10)
 
   useEffect(() => {
@@ -111,7 +111,7 @@ export default function Reportes() {
       const comprasMes =
         comprasMesRes.data?.reduce((sum, c) => sum + (c.total || 0), 0) || 0
 
-      const precioNaftaValue = empresaConfigRes.data?.precio_nafta_litro || 73.50
+      const precioNaftaValue = empresaConfigRes.data?.precio_nafta_litro || 80.30
       const consumoVehiculoValue = empresaConfigRes.data?.consumo_vehiculo_km_litro || 10
 
       setPrecioNafta(precioNaftaValue)
