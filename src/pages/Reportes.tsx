@@ -134,17 +134,17 @@ export default function Reportes() {
         detallesVentas.forEach((detalle: any) => {
           const producto = detalle.producto
           if (producto) {
-            const precioVentaM2 = parseFloat(detalle.precio_unitario) || 0
+            const precioVentaUnitario = parseFloat(detalle.precio_unitario) || 0
             const cantidad = parseFloat(detalle.cantidad) || 0
 
-            let precioCostoM2UYU = 0
-            if (producto.precio_costo_m2 && cotizacionDolar > 0) {
-              precioCostoM2UYU = parseFloat(producto.precio_costo_m2) * cotizacionDolar
-            } else if (producto.precio_compra_uyu && producto.m2_rollo) {
-              precioCostoM2UYU = parseFloat(producto.precio_compra_uyu) / parseFloat(producto.m2_rollo)
+            let precioCostoUnitario = 0
+            if (producto.precio_compra_uyu) {
+              precioCostoUnitario = parseFloat(producto.precio_compra_uyu)
+            } else if (producto.precio_costo_m2 && cotizacionDolar > 0 && producto.m2_rollo) {
+              precioCostoUnitario = parseFloat(producto.precio_costo_m2) * cotizacionDolar * parseFloat(producto.m2_rollo)
             }
 
-            gananciaTotal += (precioVentaM2 - precioCostoM2UYU) * cantidad
+            gananciaTotal += (precioVentaUnitario - precioCostoUnitario) * cantidad
           }
         })
       }
