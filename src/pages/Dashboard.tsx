@@ -72,7 +72,7 @@ export default function Dashboard() {
             cantidad,
             precio_unitario,
             venta_id,
-            producto:productos(id, nombre, codigo_producto, precio_compra, precio_venta)
+            producto:productos(id, nombre, codigo_producto, precio_compra, precio_compra_uyu, precio_venta)
           `)
           .in('venta_id', ventasMesIds)
 
@@ -87,11 +87,11 @@ export default function Dashboard() {
         detallesVentasMes.forEach((detalle: any) => {
           const producto = detalle.producto
           if (producto) {
-            const precioCompra = parseFloat(producto.precio_compra) || 0
+            const precioCompraUYU = parseFloat(producto.precio_compra_uyu) || parseFloat(producto.precio_compra) || 0
             const precioVenta = parseFloat(detalle.precio_unitario) || parseFloat(producto.precio_venta) || 0
             const cantidad = parseFloat(detalle.cantidad) || 0
 
-            gananciasMes += (precioVenta - precioCompra) * cantidad
+            gananciasMes += (precioVenta - precioCompraUYU) * cantidad
             cantidadTotalVendidaMes += cantidad
 
             const productoKey = producto.id
