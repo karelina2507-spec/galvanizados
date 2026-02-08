@@ -1536,7 +1536,7 @@ export default function Productos() {
 
                       <div>
                         <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                          Precio Rollo Completo (USD)
+                          Precio Costo (USD)
                         </label>
                         <input
                           type="number"
@@ -1557,7 +1557,7 @@ export default function Productos() {
 
                       <div>
                         <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                          Precio Rollo Completo (UYU)
+                          Precio Costo (UYU)
                         </label>
                         <input
                           type="number"
@@ -1599,7 +1599,7 @@ export default function Productos() {
 
                       <div>
                         <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                          Precio Venta Rollo (UYU)
+                          Precio Venta (UYU)
                         </label>
                         <input
                           type="number"
@@ -1620,7 +1620,7 @@ export default function Productos() {
 
                       <div>
                         <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                          Precio Venta Rollo (USD)
+                          Precio Venta (USD)
                         </label>
                         <input
                           type="number"
