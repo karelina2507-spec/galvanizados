@@ -96,18 +96,30 @@ export default function Reportes() {
       const comprasMes =
         comprasMesRes.data?.reduce((sum, c) => sum + (c.total || 0), 0) || 0
 
-      const { data: detallesVentas } = await supabase
-        .from('detalles_venta')
-        .select(`
-          cantidad,
-          precio_unitario,
-          producto:productos(
-            precio_costo_m2,
-            precio_compra_uyu,
-            m2_rollo
-          )
-        `)
+      const { data: todasVentasEmpresa } = await supabase
+        .from('ventas')
+        .select('id')
         .eq('empresa_id', empresaId)
+
+      const ventasIds = todasVentasEmpresa?.map(v => v.id) || []
+
+      let detallesVentas: any[] = []
+      if (ventasIds.length > 0) {
+        const { data } = await supabase
+          .from('detalle_ventas')
+          .select(`
+            cantidad,
+            precio_unitario,
+            producto:productos(
+              precio_costo_m2,
+              precio_compra_uyu,
+              m2_rollo
+            )
+          `)
+          .in('venta_id', ventasIds)
+
+        detallesVentas = data || []
+      }
 
       const { data: cotizacionData } = await supabase
         .from('cotizacion_dolar')

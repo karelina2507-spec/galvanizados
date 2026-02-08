@@ -97,7 +97,6 @@ export default function Dashboard() {
             producto:productos(id, nombre, codigo_producto, precio_costo_m2, precio_compra_uyu, m2_rollo)
           `)
           .in('venta_id', ventasMesIds)
-          .eq('empresa_id', empresaId)
 
         detallesVentasMes = data || []
       }
