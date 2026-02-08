@@ -6,11 +6,16 @@ interface ProductoDetalle {
   altura_m?: number
   largo_m?: number
   separacion_cm?: number
+  categoria?: {
+    nombre: string
+  } | { nombre: string }[]
+  subtipo?: string
 }
 
 interface DetalleVenta {
   cantidad: number
   precio_unitario: number
+  subtotal_item: number
   producto?: ProductoDetalle | ProductoDetalle[]
 }
 
@@ -57,12 +62,19 @@ export const generarBoletaPDF = (
   let yPos = 55
 
   doc.setTextColor(0, 0, 0)
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'normal')
+  const fechaVenta = new Date(venta.fecha_venta).toLocaleDateString('es-UY')
+  doc.text(`Fecha: ${fechaVenta}`, margin, yPos)
+
+  yPos += 8
+
   doc.setFontSize(10)
   doc.setFont('helvetica', 'bold')
   doc.text('NOMBRE CLIENTE', margin, yPos)
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(14)
-  doc.text(venta.cliente?.nombre?.toUpperCase() || 'CLIENTE', pageWidth - margin, yPos, { align: 'right' })
+  doc.text(venta.cliente?.nombre?.toUpperCase() || 'CONSUMIDOR FINAL', pageWidth - margin, yPos, { align: 'right' })
 
   doc.setDrawColor(100, 100, 100)
   doc.line(margin, yPos + 2, pageWidth - margin, yPos + 2)
@@ -85,18 +97,11 @@ export const generarBoletaPDF = (
   doc.setFontSize(14)
 
   let lugarEntrega = ''
-  if (venta.direccion) lugarEntrega = venta.direccion
-  if (venta.localidad) lugarEntrega += (lugarEntrega ? ', ' : '') + venta.localidad
+  if (venta.localidad) lugarEntrega = venta.localidad
+  if (venta.direccion) lugarEntrega += (lugarEntrega ? ', ' : '') + venta.direccion
   if (!lugarEntrega) lugarEntrega = 'ENTREGA EN LA TEJA'
 
   doc.text(lugarEntrega.toUpperCase(), pageWidth - margin, yPos, { align: 'right' })
-
-  doc.line(margin, yPos + 2, pageWidth - margin, yPos + 2)
-
-  yPos += 12
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'bold')
-  doc.text('FECHA DE ENTREGA', margin, yPos)
 
   doc.line(margin, yPos + 2, pageWidth - margin, yPos + 2)
 
@@ -108,8 +113,9 @@ export const generarBoletaPDF = (
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(11)
   doc.text('ITEM', margin + 3, yPos + 7)
+  doc.text('PRECIO', pageWidth / 2 - 15, yPos + 7, { align: 'center' })
   doc.text('CANT.', pageWidth / 2 + 20, yPos + 7, { align: 'center' })
-  doc.text('PRECIO', pageWidth - margin - 3, yPos + 7, { align: 'right' })
+  doc.text('SUBTOTAL', pageWidth - margin - 3, yPos + 7, { align: 'right' })
 
   yPos += 10
 
@@ -130,14 +136,28 @@ export const generarBoletaPDF = (
       const producto = Array.isArray(detalle.producto) ? detalle.producto[0] : detalle.producto
 
       if (producto) {
-        nombreProducto = `${producto.codigo_producto} ${producto.nombre}`.toUpperCase()
+        let categoriaNombre = producto.nombre
+        if (producto.categoria) {
+          if (Array.isArray(producto.categoria) && producto.categoria.length > 0) {
+            categoriaNombre = producto.categoria[0].nombre
+          } else if (!Array.isArray(producto.categoria)) {
+            categoriaNombre = producto.categoria.nombre
+          }
+        }
+
+        const subtipo = producto.subtipo || ''
+
+        nombreProducto = categoriaNombre.toUpperCase()
+        if (subtipo) {
+          nombreProducto += ` ${subtipo.toUpperCase()}`
+        }
 
         if (producto.altura_m || producto.largo_m || producto.separacion_cm) {
           let medidas = ''
           if (producto.altura_m) medidas += `${producto.altura_m}M`
-          if (producto.largo_m) medidas += ` X ${producto.largo_m}M`
-          if (producto.separacion_cm) medidas += ` - ${producto.separacion_cm}CM`
-          nombreProducto = medidas
+          if (producto.largo_m) medidas += `X${producto.largo_m}M`
+          if (producto.separacion_cm) medidas += ` ${producto.separacion_cm}CM`
+          nombreProducto += ` ${medidas}`
         }
       }
     }
@@ -151,8 +171,9 @@ export const generarBoletaPDF = (
     }
 
     doc.text(nombreProducto, margin + 3, yPos + 7)
+    doc.text(`$${detalle.precio_unitario.toFixed(0)}`, pageWidth / 2 - 15, yPos + 7, { align: 'center' })
     doc.text(detalle.cantidad.toString(), pageWidth / 2 + 20, yPos + 7, { align: 'center' })
-    doc.text(`$${detalle.precio_unitario.toFixed(0)}`, pageWidth - margin - 3, yPos + 7, { align: 'right' })
+    doc.text(`$${detalle.subtotal_item.toFixed(0)}`, pageWidth - margin - 3, yPos + 7, { align: 'right' })
 
     yPos += filaHeight
   })

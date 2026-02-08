@@ -210,7 +210,7 @@ export default function Ventas() {
     try {
       const { data, error } = await supabase
         .from('detalle_ventas')
-        .select('*, producto:productos(codigo_producto, nombre, altura_m, largo_m, separacion_cm)')
+        .select('*, producto:productos(codigo_producto, nombre, altura_m, largo_m, separacion_cm, subtipo, categoria:categorias(nombre))')
         .eq('venta_id', ventaId)
 
       if (error) throw error
@@ -513,7 +513,7 @@ export default function Ventas() {
 
       const { data: detalles, error } = await supabase
         .from('detalle_ventas')
-        .select('cantidad, precio_unitario, subtotal_item, producto:productos(codigo_producto, nombre, altura_m, largo_m, separacion_cm)')
+        .select('cantidad, precio_unitario, subtotal_item, producto:productos(codigo_producto, nombre, altura_m, largo_m, separacion_cm, subtipo, categoria:categorias(nombre))')
         .eq('venta_id', venta.id)
 
       if (error) throw error
@@ -591,7 +591,7 @@ export default function Ventas() {
 
       const { data: detalles, error } = await supabase
         .from('detalle_ventas')
-        .select('cantidad, precio_unitario, subtotal_item, producto:productos(codigo_producto, nombre, altura_m, largo_m, separacion_cm)')
+        .select('cantidad, precio_unitario, subtotal_item, producto:productos(codigo_producto, nombre, altura_m, largo_m, separacion_cm, subtipo, categoria:categorias(nombre))')
         .eq('venta_id', venta.id)
 
       if (error) throw error
