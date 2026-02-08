@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Fragment } from 'react'
 import { useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
@@ -1452,7 +1452,7 @@ export default function Ventas() {
                   </tr>
                 ) : (
                   ventasFiltradas.map((venta) => (
-                    <React.Fragment key={venta.id}>
+                    <Fragment key={venta.id}>
                       <tr
                         style={{
                           transition: 'background-color 0.2s',
@@ -1712,7 +1712,7 @@ export default function Ventas() {
                           </td>
                         </tr>
                       )}
-                    </React.Fragment>
+                    </Fragment>
                   ))
                 )}
               </tbody>

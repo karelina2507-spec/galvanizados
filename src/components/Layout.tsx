@@ -1,14 +1,14 @@
-import React from 'react'
+import { type ReactNode, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Package, ShoppingCart, BarChart3, Users, Truck, DollarSign, Menu, X, Navigation, Tag, FileText, Receipt } from 'lucide-react'
 import '../styles/layout.css'
 
 interface LayoutProps {
-  children: React.ReactNode
+  children: ReactNode
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = React.useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const location = useLocation()
 
   const isActive = (path: string) => location.pathname === path

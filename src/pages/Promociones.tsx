@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
 import { Plus, Edit, Trash2, AlertCircle, CheckCircle, X, Package } from 'lucide-react'
@@ -551,7 +551,7 @@ export default function Promociones() {
                 </tr>
               ) : (
                 promociones.map((promo) => (
-                  <React.Fragment key={promo.id}>
+                  <Fragment key={promo.id}>
                     <tr>
                       <td style={{ fontWeight: '600' }}>{promo.nombre}</td>
                       <td>{promo.descripcion || '-'}</td>
@@ -674,7 +674,7 @@ export default function Promociones() {
                         </td>
                       </tr>
                     )}
-                  </React.Fragment>
+                  </Fragment>
                 ))
               )}
             </tbody>
