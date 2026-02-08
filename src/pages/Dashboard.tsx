@@ -64,6 +64,28 @@ export default function Dashboard() {
   useEffect(() => {
     if (empresaId) {
       loadMetrics()
+
+      const interval = setInterval(() => {
+        loadMetrics()
+      }, 30000)
+
+      return () => clearInterval(interval)
+    }
+  }, [empresaId])
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && empresaId) {
+        loadMetrics()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleVisibilityChange)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleVisibilityChange)
     }
   }, [empresaId])
 
