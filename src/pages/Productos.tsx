@@ -304,16 +304,40 @@ export default function Productos() {
 
   const handleEdit = (producto: Producto) => {
     setEditingId(producto.id)
+
+    const altura = producto.altura_m || 0
+    const largo = producto.largo_m || 0
+    const m2Total = altura * largo
+    const precioCostoM2 = producto.precio_costo_m2 || 0
+    const precioVentaM2 = producto.precio_venta_m2 || 0
+
+    let precioCostoUSD = ''
+    let precioCostoUYU = ''
+    let precioVentaUYU = ''
+    let precioVentaUSD = ''
+
+    if (cotizacionDolar) {
+      if (precioCostoM2 > 0 && altura > 0) {
+        precioCostoUSD = (precioCostoM2 * altura * 25).toFixed(2)
+        precioCostoUYU = (precioCostoM2 * altura * 25 * cotizacionDolar).toFixed(2)
+      }
+
+      if (precioVentaM2 > 0 && m2Total > 0) {
+        precioVentaUYU = (precioVentaM2 * m2Total).toFixed(2)
+        precioVentaUSD = (precioVentaM2 * m2Total / cotizacionDolar).toFixed(2)
+      }
+    }
+
     setFormData({
       codigo_producto: producto.codigo_producto,
       nombre: producto.nombre,
       subtipo: producto.subtipo || '',
       descripcion: producto.descripcion || '',
       categoria_id: producto.categoria_id,
-      precio_compra: producto.precio_compra.toString(),
-      precio_venta: producto.precio_venta.toString(),
-      precio_compra_uyu: producto.precio_compra_uyu?.toString() || '',
-      precio_venta_usd: producto.precio_venta_usd?.toString() || '',
+      precio_compra: precioCostoUSD || producto.precio_compra.toString(),
+      precio_venta: precioVentaUYU || producto.precio_venta.toString(),
+      precio_compra_uyu: precioCostoUYU || producto.precio_compra_uyu?.toString() || '',
+      precio_venta_usd: precioVentaUSD || producto.precio_venta_usd?.toString() || '',
       precio_costo_m2: producto.precio_costo_m2?.toString() || '',
       precio_venta_m2: producto.precio_venta_m2?.toString() || '',
       altura_m: producto.altura_m?.toString() || '',
