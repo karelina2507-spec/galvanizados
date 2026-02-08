@@ -565,9 +565,9 @@ export default function Ventas() {
 
       if (ventaCompleta.cliente?.telefono) {
         const telefonoLimpio = ventaCompleta.cliente.telefono.replace(/\D/g, '')
-        urlWhatsApp = `https://wa.me/${telefonoLimpio}?text=${mensajeCodificado}`
+        urlWhatsApp = `https://api.whatsapp.com/send?phone=${telefonoLimpio}&text=${mensajeCodificado}`
       } else {
-        urlWhatsApp = `https://wa.me/?text=${mensajeCodificado}`
+        urlWhatsApp = `https://api.whatsapp.com/send?text=${mensajeCodificado}`
       }
 
       window.open(urlWhatsApp, '_blank')
