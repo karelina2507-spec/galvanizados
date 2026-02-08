@@ -540,13 +540,20 @@ export default function Ventas() {
 
       let mensaje = `¡Hola! 👋\n\n`
       mensaje += `Te envío la boleta de tu compra:\n\n`
-      mensaje += `*${venta.numero_venta}*\n`
       mensaje += `💰 Total: $${venta.total.toFixed(2)}\n\n`
 
       if (venta.direccion || venta.localidad) {
         mensaje += `📍 Entrega: `
-        if (venta.direccion) mensaje += venta.direccion
-        if (venta.localidad) mensaje += `, ${venta.localidad}`
+
+        const partesDireccion = venta.direccion ? venta.direccion.split(',').map(p => p.trim()) : []
+        const numero = partesDireccion[0] || ''
+        const calle = partesDireccion[1] || ''
+
+        if (venta.localidad) mensaje += venta.localidad
+        if (calle && numero) {
+          if (venta.localidad) mensaje += ', '
+          mensaje += `${calle} ${numero}`
+        }
         mensaje += `\n\n`
       }
 
