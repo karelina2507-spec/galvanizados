@@ -557,8 +557,8 @@ export default function Ventas() {
         mensaje += `\n\n`
       }
 
-      mensaje += `📄 Ver boleta: ${urlBoleta}\n\n`
-      mensaje += `¡Gracias por tu compra! 🙏`
+      mensaje += `¡Gracias por tu compra! 🙏\n\n`
+      mensaje += urlBoleta
 
       const mensajeCodificado = encodeURIComponent(mensaje)
       let urlWhatsApp = ''
