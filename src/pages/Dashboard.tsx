@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
 import '../styles/dashboard.css'
-import { TrendingUp, Package, ShoppingCart, DollarSign, LogOut, Users, Award, AlertCircle, Trash2 } from 'lucide-react'
+import { TrendingUp, Package, ShoppingCart, DollarSign, LogOut, Users, Award, AlertCircle } from 'lucide-react'
 
 interface Metrics {
   totalProductos: number
@@ -16,10 +16,6 @@ interface Metrics {
   productoMasVendido: { nombre: string; cantidad: number; codigo: string } | null
   productoMenosVendido: { nombre: string; cantidad: number; codigo: string } | null
   cantidadTotalVendidaMes: number
-  costosCombustibleMes: number
-  montoEnviosMes: number
-  gananciasVentasMes: number
-  gananciaFinalMes: number
 }
 
 export default function Dashboard() {
@@ -35,14 +31,9 @@ export default function Dashboard() {
     productoMasVendido: null,
     productoMenosVendido: null,
     cantidadTotalVendidaMes: 0,
-    costosCombustibleMes: 0,
-    montoEnviosMes: 0,
-    gananciasVentasMes: 0,
-    gananciaFinalMes: 0,
   })
   const [, setLoading] = useState(true)
   const [empresaId, setEmpresaId] = useState<string | null>(null)
-  const [reseteando, setReseteando] = useState(false)
 
   useEffect(() => {
     const fetchEmpresaId = async () => {
@@ -64,28 +55,6 @@ export default function Dashboard() {
   useEffect(() => {
     if (empresaId) {
       loadMetrics()
-
-      const interval = setInterval(() => {
-        loadMetrics()
-      }, 30000)
-
-      return () => clearInterval(interval)
-    }
-  }, [empresaId])
-
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && empresaId) {
-        loadMetrics()
-      }
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('focus', handleVisibilityChange)
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('focus', handleVisibilityChange)
     }
   }, [empresaId])
 
@@ -97,14 +66,13 @@ export default function Dashboard() {
       const inicioHoy = new Date(hoy.setHours(0, 0, 0, 0)).toISOString()
       const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString()
 
-      const [productosRes, ventasHoyRes, ventasMesRes, comprasMesRes, clientesRes, empresaConfigRes] =
+      const [productosRes, ventasHoyRes, ventasMesRes, comprasMesRes, clientesRes] =
         await Promise.all([
           supabase.from('productos').select('*').eq('activo', true).eq('empresa_id', empresaId),
           supabase.from('ventas').select('total').gte('fecha_venta', inicioHoy).eq('empresa_id', empresaId),
-          supabase.from('ventas').select('id, total, distancia_km, envio').gte('fecha_venta', inicioMes).eq('empresa_id', empresaId),
+          supabase.from('ventas').select('id, total').gte('fecha_venta', inicioMes).eq('empresa_id', empresaId),
           supabase.from('compras').select('total').gte('fecha_compra', inicioMes).eq('empresa_id', empresaId),
           supabase.from('clientes').select('*').eq('activo', true).eq('empresa_id', empresaId),
-          supabase.from('empresas').select('precio_nafta_litro, consumo_vehiculo_km_litro').eq('id', empresaId).single(),
         ])
 
       const totalProductos = productosRes.data?.length || 0
@@ -116,26 +84,6 @@ export default function Dashboard() {
         comprasMesRes.data?.reduce((sum, c) => sum + (c.total || 0), 0) || 0
       const totalClientes = clientesRes.data?.length || 0
 
-      const precioNafta = empresaConfigRes.data?.precio_nafta_litro || 80.30
-      const consumoVehiculo = empresaConfigRes.data?.consumo_vehiculo_km_litro || 10
-
-      let costosCombustibleMes = 0
-      let montoEnviosMes = 0
-
-      if (ventasMesRes.data) {
-        ventasMesRes.data.forEach((venta: any) => {
-          const distancia = parseFloat(venta.distancia_km) || 0
-          const envio = parseFloat(venta.envio) || 0
-
-          if (distancia > 0) {
-            const litrosUsados = distancia / consumoVehiculo
-            costosCombustibleMes += litrosUsados * precioNafta
-          }
-
-          montoEnviosMes += envio
-        })
-      }
-
       const ventasMesIds = ventasMesRes.data?.map(v => v.id) || []
 
       let detallesVentasMes: any[] = []
@@ -146,14 +94,15 @@ export default function Dashboard() {
             cantidad,
             precio_unitario,
             venta_id,
-            producto:productos(id, nombre, codigo_producto, precio_costo_m2, precio_compra_uyu, precio_venta_m2, m2_rollo)
+            producto:productos(id, nombre, codigo_producto, precio_costo_m2, precio_compra_uyu, m2_rollo)
           `)
           .in('venta_id', ventasMesIds)
+          .eq('empresa_id', empresaId)
 
         detallesVentasMes = data || []
       }
 
-      let gananciasVentasMes = 0
+      let gananciasMes = 0
       let cantidadTotalVendidaMes = 0
       const productoVentas: Record<string, { nombre: string; codigo: string; cantidad: number }> = {}
 
@@ -169,11 +118,8 @@ export default function Dashboard() {
         detallesVentasMes.forEach((detalle: any) => {
           const producto = detalle.producto
           if (producto) {
-            const cantidadRollos = parseFloat(detalle.cantidad) || 0
-            const m2Rollo = parseFloat(producto.m2_rollo) || 1
-            const cantidadM2 = cantidadRollos * m2Rollo
-
-            const precioVentaM2 = parseFloat(producto.precio_venta_m2) || 0
+            const precioVentaM2 = parseFloat(detalle.precio_unitario) || 0
+            const cantidad = parseFloat(detalle.cantidad) || 0
 
             let precioCostoM2UYU = 0
             if (producto.precio_costo_m2 && cotizacionDolar > 0) {
@@ -182,8 +128,8 @@ export default function Dashboard() {
               precioCostoM2UYU = parseFloat(producto.precio_compra_uyu) / parseFloat(producto.m2_rollo)
             }
 
-            gananciasVentasMes += (precioVentaM2 - precioCostoM2UYU) * cantidadM2
-            cantidadTotalVendidaMes += cantidadM2
+            gananciasMes += (precioVentaM2 - precioCostoM2UYU) * cantidad
+            cantidadTotalVendidaMes += cantidad
 
             const productoKey = producto.id
             if (!productoVentas[productoKey]) {
@@ -193,12 +139,10 @@ export default function Dashboard() {
                 cantidad: 0
               }
             }
-            productoVentas[productoKey].cantidad += cantidadM2
+            productoVentas[productoKey].cantidad += cantidad
           }
         })
       }
-
-      const gananciaFinalMes = gananciasVentasMes + montoEnviosMes - costosCombustibleMes
 
       const productosOrdenados = Object.values(productoVentas).sort((a, b) => b.cantidad - a.cantidad)
       const productoMasVendido = productosOrdenados.length > 0 ? productosOrdenados[0] : null
@@ -208,16 +152,12 @@ export default function Dashboard() {
         totalProductos,
         ventasHoy,
         ventasMes,
-        gananciasMes: gananciasVentasMes,
+        gananciasMes,
         comprasMes,
         totalClientes,
         productoMasVendido,
         productoMenosVendido,
         cantidadTotalVendidaMes,
-        costosCombustibleMes,
-        montoEnviosMes,
-        gananciasVentasMes,
-        gananciaFinalMes,
       })
     } catch (error) {
       console.error('Error loading metrics:', error)
@@ -229,56 +169,6 @@ export default function Dashboard() {
   const handleLogout = async () => {
     await signOut()
     navigate('/login')
-  }
-
-  const handleResetearDatos = async () => {
-    const confirmacion1 = window.confirm(
-      '⚠️ ADVERTENCIA: Esto eliminará TODAS las ventas, presupuestos, pedidos, compras, promociones, clientes y gastos.\n\n¿Estás seguro de que quieres continuar?'
-    )
-
-    if (!confirmacion1) return
-
-    const confirmacion2 = window.confirm(
-      '⚠️ ÚLTIMA ADVERTENCIA: Esta acción NO se puede deshacer.\n\nTodos los datos de prueba serán eliminados permanentemente.\n\n¿Confirmas que deseas eliminar todos los datos?'
-    )
-
-    if (!confirmacion2) return
-
-    setReseteando(true)
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-
-      if (!session || !empresaId) {
-        alert('Error: No se pudo obtener la sesión o empresa_id')
-        return
-      }
-
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resetear-datos-prueba`
-
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ empresa_id: empresaId })
-      })
-
-      const result = await response.json()
-
-      if (response.ok) {
-        alert('✅ Datos eliminados correctamente. La página se recargará.')
-        window.location.reload()
-      } else {
-        alert(`Error al eliminar datos: ${result.error || 'Error desconocido'}`)
-      }
-    } catch (error) {
-      console.error('Error al resetear datos:', error)
-      alert('Error al resetear los datos. Verifica la consola.')
-    } finally {
-      setReseteando(false)
-    }
   }
 
   return (
@@ -440,47 +330,7 @@ export default function Dashboard() {
             </div>
             <div className="metric-content">
               <p className="metric-label">Unidades Vendidas (Mes)</p>
-              <p className="metric-value">{metrics.cantidadTotalVendidaMes.toFixed(2)}</p>
-            </div>
-          </div>
-
-          <div className="metric-card">
-            <div className="metric-icon" style={{ backgroundColor: '#fee2e2' }}>
-              <TrendingUp size={24} color="#dc2626" />
-            </div>
-            <div className="metric-content">
-              <p className="metric-label">Costo Combustible (Mes)</p>
-              <p className="metric-value">$ {metrics.costosCombustibleMes.toFixed(2)}</p>
-            </div>
-          </div>
-
-          <div className="metric-card">
-            <div className="metric-icon" style={{ backgroundColor: '#d1fae5' }}>
-              <DollarSign size={24} color="#059669" />
-            </div>
-            <div className="metric-content">
-              <p className="metric-label">Monto Envíos (Mes)</p>
-              <p className="metric-value">$ {metrics.montoEnviosMes.toFixed(2)}</p>
-            </div>
-          </div>
-
-          <div className="metric-card">
-            <div className="metric-icon" style={{ backgroundColor: '#dbeafe' }}>
-              <TrendingUp size={24} color="#0369a1" />
-            </div>
-            <div className="metric-content">
-              <p className="metric-label">Ganancia Ventas (Mes)</p>
-              <p className="metric-value">$ {metrics.gananciasVentasMes.toFixed(2)}</p>
-            </div>
-          </div>
-
-          <div className="metric-card">
-            <div className="metric-icon" style={{ backgroundColor: '#dcfce7' }}>
-              <DollarSign size={24} color="#16a34a" />
-            </div>
-            <div className="metric-content">
-              <p className="metric-label">Ganancia Final (Mes)</p>
-              <p className="metric-value">$ {metrics.gananciaFinalMes.toFixed(2)}</p>
+              <p className="metric-value">{metrics.cantidadTotalVendidaMes}</p>
             </div>
           </div>
         </div>
@@ -522,19 +372,6 @@ export default function Dashboard() {
             >
               <TrendingUp size={20} />
               Ver Reportes
-            </button>
-            <button
-              onClick={handleResetearDatos}
-              disabled={reseteando}
-              className="action-btn"
-              style={{
-                backgroundColor: '#fee2e2',
-                color: '#dc2626',
-                border: '2px solid #fca5a5',
-              }}
-            >
-              <Trash2 size={20} />
-              {reseteando ? 'Reseteando...' : 'Resetear Datos de Prueba'}
             </button>
           </div>
         </div>
