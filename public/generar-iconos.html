@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Generar Iconos PWA</title>
+</head>
+<body>
+  <h1>Generar Iconos para PWA</h1>
+  <button onclick="generarIconos()">Generar y Descargar Iconos</button>
+
+  <script>
+    function generarIconos() {
+      const tamaños = [192, 512];
+
+      tamaños.forEach(tamaño => {
+        const canvas = document.createElement('canvas');
+        canvas.width = tamaño;
+        canvas.height = tamaño;
+        const ctx = canvas.getContext('2d');
+
+        const gradient = ctx.createLinearGradient(0, 0, tamaño, tamaño);
+        gradient.addColorStop(0, '#4F46E5');
+        gradient.addColorStop(1, '#7C3AED');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, tamaño, tamaño);
+
+        ctx.fillStyle = 'white';
+        ctx.font = `bold ${tamaño * 0.3}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('GT', tamaño / 2, tamaño / 2);
+
+        canvas.toBlob((blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `icon-${tamaño}.png`;
+          a.click();
+          URL.revokeObjectURL(url);
+        });
+      });
+
+      alert('Iconos generados. Guárdalos en la carpeta /public de tu proyecto.');
+    }
+  </script>
+</body>
+</html>
